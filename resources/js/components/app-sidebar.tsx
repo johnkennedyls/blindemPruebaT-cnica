@@ -1,5 +1,12 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, Calculator, FolderGit2, LayoutGrid } from 'lucide-react';
+import {
+    BookOpen,
+    Building2,
+    Calculator,
+    FolderGit2,
+    LayoutGrid,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -13,7 +20,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { index as companies } from '@/routes/companies';
 import { index as liquidations } from '@/routes/liquidations';
+import { index as workers } from '@/routes/workers';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
@@ -27,6 +36,16 @@ const mainNavItems: NavItem[] = [
         title: 'Liquidaciones',
         href: liquidations().url,
         icon: Calculator,
+    },
+    {
+        title: 'Trabajadores',
+        href: workers().url,
+        icon: Users,
+    },
+    {
+        title: 'Empresas',
+        href: companies().url,
+        icon: Building2,
     },
 ];
 

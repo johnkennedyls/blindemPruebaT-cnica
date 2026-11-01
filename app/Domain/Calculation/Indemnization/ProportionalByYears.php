@@ -41,9 +41,9 @@ abstract class ProportionalByYears implements IndemnizationStrategy
             $fraction,
             sprintf(
                 '%s días el primer año + %s por años siguientes + %s por la fracción de %s/%s',
-                $first->exactAmount(),
-                $following->exactAmount(),
-                $fraction->exactAmount(),
+                $first->displayAmount(),
+                $following->displayAmount(),
+                $fraction->displayAmount(),
                 $tenure->fractionDays,
                 $tenure->yearDays,
             ),

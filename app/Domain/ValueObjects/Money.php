@@ -119,6 +119,11 @@ final class Money
         return $this->amount;
     }
 
+    public function displayAmount(): string
+    {
+        return rtrim(rtrim($this->amount, '0'), '.');
+    }
+
     public function __toString(): string
     {
         return $this->amount();

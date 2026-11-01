@@ -115,4 +115,20 @@ class MoneyTest extends TestCase
         $this->assertTrue(Money::of('0')->isZero());
         $this->assertTrue(Money::of('-5')->isNegative());
     }
+
+    public function test_la_cadena_para_la_persona_no_lleva_ceros_de_la_escala(): void
+    {
+        $this->assertSame('30', Money::of('30')->displayAmount());
+        $this->assertSame('2', Money::of('2.000000')->displayAmount());
+        $this->assertSame('0', Money::of('0')->displayAmount());
+        $this->assertSame('-249095', Money::of('-249095.00')->displayAmount());
+    }
+
+    public function test_la_fraccion_de_dias_indemnizables_se_muestra_hasta_la_escala_real(): void
+    {
+        $fraction = Money::of('109')->times('20')->dividedBy('365');
+
+        $this->assertSame('5.972602739726', $fraction->displayAmount());
+        $this->assertSame('6', $fraction->amount());
+    }
 }

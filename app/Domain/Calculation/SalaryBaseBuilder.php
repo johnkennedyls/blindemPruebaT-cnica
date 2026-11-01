@@ -29,8 +29,9 @@ final class SalaryBaseBuilder
         if (! $draft->baseSalary->atMost($limit)) {
             if (! $transport->isZero()) {
                 $notices[] = sprintf(
-                    'El salario básico supera %s (2 SMLMV del año %d); no hay derecho a auxilio de transporte.',
+                    'El salario básico supera %s (%s SMLMV del año %d); no hay derecho a auxilio de transporte.',
                     $limit->amount(),
+                    $parameters->rate('transport_auxiliary_max_multiple')->displayAmount(),
                     $wages->year,
                 );
             }

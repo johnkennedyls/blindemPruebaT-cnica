@@ -111,6 +111,9 @@ final class Money
         return $this->rounded()->amount;
     }
 
+    /**
+     * @return numeric-string
+     */
     public function exactAmount(): string
     {
         return $this->amount;

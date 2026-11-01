@@ -19,7 +19,7 @@ class LegalParameterSeeder extends Seeder
             ['cesantias_interest_rate', 0.12, 'rate', 'Art. 99 C.S.T.: 12 % anual sobre las cesantías causadas.'],
 
             ['prima_days_per_semester', 180, 'days', 'Art. 306 C.S.T.: prima de 180 días por año (dos semestres).'],
-            ['prima_divisor', 720, 'days', 'Denominador que usa el Excel (E21) para la parte proporcional de prima.'],
+            ['prima_divisor', 360, 'days', 'Denominador que usa el Excel (E20) para la prima proporcional.'],
 
             ['vacation_days_per_year', 15, 'days', 'Art. 186 C.S.T.: 15 días hábiles de vacaciones por año.'],
             ['vacation_divisor', 720, 'days', 'Denominador del Excel (E21) para vacaciones proporcionales.'],

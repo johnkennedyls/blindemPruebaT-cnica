@@ -1,0 +1,337 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans:
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 4px);
+    --radius-sm: calc(var(--radius) - 8px);
+
+    --color-taxi: #ffc400;
+    --color-taxi-light: #ffd22a;
+    --color-taxi-deep: #ff9a1e;
+    --color-taxi-ink: #8a5a00;
+    --color-graphite: #16191d;
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --shadow-xs: var(--neu-raised);
+    --shadow-sm: var(--neu-raised-lg);
+}
+
+:root {
+    --background: #e9ebee;
+    --foreground: #14171b;
+    --card: #eef1f5;
+    --card-foreground: #14171b;
+    --popover: #f4f6f9;
+    --popover-foreground: #14171b;
+
+    --primary: #ffc400;
+    --primary-foreground: #0e1116;
+
+    --secondary: #dfe3e8;
+    --secondary-foreground: #14171b;
+    --muted: #dfe3e8;
+    --muted-foreground: #5b6472;
+    --accent: #f0f2f5;
+    --accent-foreground: #8a5a00;
+
+    --destructive: #c81e1e;
+    --destructive-foreground: #fff5f5;
+
+    --border: #d3d8df;
+    --input: #e2e6ea;
+    --ring: #8a5a00;
+
+    --chart-1: #ffc400;
+    --chart-2: #ff9a1e;
+    --chart-3: #5b6472;
+    --chart-4: #a3b1c0;
+    --chart-5: #8a5a00;
+
+    --radius: 1.1rem;
+
+    --sidebar: #eef1f5;
+    --sidebar-foreground: #14171b;
+    --sidebar-primary: #ffc400;
+    --sidebar-primary-foreground: #0e1116;
+    --sidebar-accent: #e2e6ea;
+    --sidebar-accent-foreground: #14171b;
+    --sidebar-border: #d3d8df;
+    --sidebar-ring: #8a5a00;
+
+    --neu-dark: rgba(163, 177, 192, 0.55);
+    --neu-light: rgba(255, 255, 255, 0.95);
+    --neu-raised: 7px 7px 16px var(--neu-dark), -7px -7px 16px var(--neu-light);
+    --neu-raised-lg: 12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
+    --neu-sunken: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+    --neu-pressed: inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
+    --gradient-taxi: linear-gradient(135deg, #ffd22a 0%, #ffc400 42%, #ff9a1e 100%);
+}
+
+.dark {
+    --background: #16191d;
+    --foreground: #f4f6f8;
+    --card: #1c1f24;
+    --card-foreground: #f4f6f8;
+    --popover: #22262c;
+    --popover-foreground: #f4f6f8;
+
+    --primary: #ffc400;
+    --primary-foreground: #0e1116;
+
+    --secondary: #22262c;
+    --secondary-foreground: #f4f6f8;
+    --muted: #22262c;
+    --muted-foreground: #98a2b3;
+    --accent: #2a2f36;
+    --accent-foreground: #ffd22a;
+
+    --destructive: #ff6b6b;
+    --destructive-foreground: #16191d;
+
+    --border: #2b3138;
+    --input: #101317;
+    --ring: #ffd22a;
+
+    --chart-1: #ffd22a;
+    --chart-2: #ff9a1e;
+    --chart-3: #98a2b3;
+    --chart-4: #4ade80;
+    --chart-5: #60a5fa;
+
+    --sidebar: #12151a;
+    --sidebar-foreground: #f4f6f8;
+    --sidebar-primary: #ffc400;
+    --sidebar-primary-foreground: #0e1116;
+    --sidebar-accent: #22262c;
+    --sidebar-accent-foreground: #f4f6f8;
+    --sidebar-border: #2b3138;
+    --sidebar-ring: #ffd22a;
+
+    --neu-dark: rgba(0, 0, 0, 0.62);
+    --neu-light: rgba(255, 255, 255, 0.045);
+    --neu-raised: 7px 7px 16px var(--neu-dark), -7px -7px 16px var(--neu-light);
+    --neu-raised-lg: 12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
+    --neu-sunken: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
+    --neu-pressed: inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+}
+
+@layer components {
+    .bg-primary,
+    .bg-sidebar-primary {
+        background-image: var(--gradient-taxi);
+    }
+
+    .neu-raised {
+        box-shadow: var(--neu-raised);
+    }
+
+    .neu-card {
+        background: var(--card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--neu-raised-lg);
+    }
+
+    .neu-sunken {
+        background: var(--input);
+        box-shadow: var(--neu-sunken);
+    }
+
+    .btn-taxi {
+        background-image: var(--gradient-taxi);
+        color: #0e1116;
+        font-weight: 600;
+        border-radius: var(--radius-lg);
+        box-shadow:
+            var(--neu-raised),
+            0 2px 0 rgba(138, 90, 0, 0.35);
+        transition:
+            transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            filter 180ms ease;
+    }
+
+    .btn-taxi:hover {
+        transform: translateY(-2px);
+        filter: saturate(1.08);
+        box-shadow:
+            var(--neu-raised-lg),
+            0 4px 0 rgba(138, 90, 0, 0.35);
+    }
+
+    .btn-taxi:active {
+        transform: translateY(1px);
+        box-shadow: var(--neu-pressed);
+    }
+
+    .skeleton-neu {
+        position: relative;
+        overflow: hidden;
+        background: var(--muted);
+        border-radius: calc(var(--radius) - 4px);
+        box-shadow: var(--neu-pressed);
+    }
+
+    .skeleton-neu::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 196, 0, 0.28) 55%,
+            transparent 100%
+        );
+        animation: neu-shimmer 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    }
+
+    .neu-enter {
+        animation: neu-rise 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .neu-figure {
+        color: var(--color-taxi-ink);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .dark .neu-figure {
+        color: var(--color-taxi);
+    }
+
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@keyframes neu-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes neu-rise {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-neu::after,
+    .neu-enter {
+        animation: none;
+    }
+
+    .btn-taxi,
+    .btn-taxi:hover,
+    .btn-taxi:active {
+        transition: none;
+        transform: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .neu-card,
+    .neu-raised,
+    .neu-sunken,
+    .btn-taxi,
+    .skeleton-neu {
+        box-shadow: none;
+        background: Canvas;
+        color: CanvasText;
+        border: 2px solid CanvasText;
+    }
+}
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    .neu-card,
+    .neu-raised,
+    .btn-taxi {
+        box-shadow: none;
+        background-image: none;
+    }
+
+    nav,
+    aside {
+        display: none !important;
+    }
+}

@@ -14,10 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { destroy, index, store, update } from '@/routes/parametrics';
-import type {
-    ParametricDefinitionData,
-    ParametricFieldData,
-} from '@/types';
+import type { ParametricDefinitionData, ParametricFieldData } from '@/types';
 
 type Props = {
     definition: ParametricDefinitionData;
@@ -40,8 +37,7 @@ export default function ParametricForm({ definition, row }: Props) {
         const fromRow = row?.values[field.name];
 
         if (field.kind === 'checkbox') {
-            initials[field.name] =
-                fromRow === true || fromRow === '1';
+            initials[field.name] = fromRow === true || fromRow === '1';
             continue;
         }
 
@@ -68,9 +64,7 @@ export default function ParametricForm({ definition, row }: Props) {
 
     return (
         <>
-            <Head
-                title={row ? `Editar ${definition.one}` : definition.title}
-            />
+            <Head title={row ? `Editar ${definition.one}` : definition.title} />
 
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -135,10 +129,14 @@ export default function ParametricForm({ definition, row }: Props) {
                             className="btn-taxi border-0"
                             disabled={processing}
                         >
-                            {row ? 'Guardar cambios' : `Registrar ${definition.one}`}
+                            {row
+                                ? 'Guardar cambios'
+                                : `Registrar ${definition.one}`}
                         </Button>
                         <Button asChild variant="ghost" size="sm">
-                            <Link href={index({ resource: definition.slug })}>Cancelar</Link>
+                            <Link href={index({ resource: definition.slug })}>
+                                Cancelar
+                            </Link>
                         </Button>
                     </div>
                 </form>
@@ -156,7 +154,12 @@ export default function ParametricForm({ definition, row }: Props) {
                             </p>
                         </div>
                         <ConfirmDeleteDialog
-                            action={destroy({ resource: definition.slug, parametric: row.id }).url}
+                            action={
+                                destroy({
+                                    resource: definition.slug,
+                                    parametric: row.id,
+                                }).url
+                            }
                             label={`Eliminar ${definition.one}`}
                             question={`¿Eliminar "${row.headline}"?`}
                             description="No se podrá recuperar. Considere desactivar el registro en lugar de eliminarlo."
@@ -206,10 +209,7 @@ function FieldInput({
                     </SelectTrigger>
                     <SelectContent>
                         {(field.options ?? []).map((option) => (
-                            <SelectItem
-                                key={option.value}
-                                value={option.value}
-                            >
+                            <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
                         ))}

@@ -80,7 +80,9 @@ export function AppSidebar() {
             ? [
                   {
                       title: 'Parámetros',
-                      href: parametrics.index({ resource: 'tipos-de-documento' }).url,
+                      href: parametrics.index({
+                          resource: 'tipos-de-documento',
+                      }).url,
                       icon: SlidersHorizontal,
                   } satisfies NavItem,
               ]

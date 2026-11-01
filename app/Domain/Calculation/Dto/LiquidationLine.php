@@ -41,6 +41,6 @@ final class LiquidationLine
 
     public function signedAmount(): Money
     {
-        return $this->isEarning() ? $this->amount : $this->amount->negative();
+        return $this->amount->times($this->concept->side->sign());
     }
 }

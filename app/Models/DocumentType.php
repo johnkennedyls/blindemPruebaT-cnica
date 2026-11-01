@@ -6,7 +6,18 @@ use App\Domain\Enum\HolderType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property string|null $abbreviation
+ * @property HolderType $holder_type
+ * @property bool $is_active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class DocumentType extends Model
 {
     protected $fillable = [
@@ -25,11 +36,18 @@ class DocumentType extends Model
         ];
     }
 
+    /**
+     * @param  Builder<DocumentType>  $query
+     * @return Builder<DocumentType>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * @return HasMany<Worker, $this>
+     */
     public function workers(): HasMany
     {
         return $this->hasMany(Worker::class);

@@ -25,9 +25,9 @@ return new class extends Migration
 
         foreach ([
             'ck_lp_unit' => "unit IN ('rate', 'days', 'amount')",
-            'ck_lp_value' => "numeric_value IS NULL OR numeric_value >= 0",
-            'ck_lp_some_value' => "numeric_value IS NOT NULL OR text_value IS NOT NULL",
-            'ck_lp_period' => "effective_to IS NULL OR effective_to >= effective_from",
+            'ck_lp_value' => 'numeric_value IS NULL OR numeric_value >= 0',
+            'ck_lp_some_value' => 'numeric_value IS NOT NULL OR text_value IS NOT NULL',
+            'ck_lp_period' => 'effective_to IS NULL OR effective_to >= effective_from',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE legal_parameters ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

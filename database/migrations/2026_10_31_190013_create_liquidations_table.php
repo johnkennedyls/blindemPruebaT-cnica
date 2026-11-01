@@ -44,9 +44,9 @@ return new class extends Migration
         foreach ([
             'ck_liq_variant' => "variant IN ('prestacional', 'con_indemnizacion')",
             'ck_liq_status' => "status IN ('borrador', 'calculada', 'aprobada', 'anulada')",
-            'ck_liq_period' => "period_to IS NULL OR period_to >= period_from",
-            'ck_liq_math' => "net_total = total_earned - total_deductions",
-            'ck_liq_signs' => "total_earned >= 0 AND total_deductions >= 0",
+            'ck_liq_period' => 'period_to IS NULL OR period_to >= period_from',
+            'ck_liq_math' => 'net_total = total_earned - total_deductions',
+            'ck_liq_signs' => 'total_earned >= 0 AND total_deductions >= 0',
             'ck_liq_snapshot' => "jsonb_typeof(params_snapshot) = 'object'",
         ] as $name => $expression) {
             DB::statement("ALTER TABLE liquidations ADD CONSTRAINT {$name} CHECK ({$expression})");

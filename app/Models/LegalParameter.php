@@ -4,7 +4,20 @@ namespace App\Models;
 
 use App\Domain\Enum\ParameterUnit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $key
+ * @property numeric-string|null $numeric_value
+ * @property string|null $text_value
+ * @property ParameterUnit $unit
+ * @property Carbon $effective_from
+ * @property Carbon|null $effective_to
+ * @property string|null $description
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class LegalParameter extends Model
 {
     protected $fillable = [

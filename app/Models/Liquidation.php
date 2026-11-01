@@ -8,7 +8,36 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $folio
+ * @property int $contract_id
+ * @property int $created_by
+ * @property int|null $approved_by
+ * @property LiquidationVariant $variant
+ * @property LiquidationStatus $status
+ * @property Carbon $settlement_date
+ * @property Carbon|null $period_from
+ * @property Carbon|null $period_to
+ * @property numeric-string $base_prestacional_snapshot
+ * @property numeric-string $base_vacacional_snapshot
+ * @property numeric-string $smlmv_snapshot
+ * @property int $cesantia_days
+ * @property int $prima_days
+ * @property int $vacation_days
+ * @property int $pending_salary_days
+ * @property int $total_days_worked
+ * @property array<string, mixed> $params_snapshot
+ * @property numeric-string $total_earned
+ * @property numeric-string $total_deductions
+ * @property numeric-string $net_total
+ * @property string|null $observations
+ * @property Carbon|null $voided_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Liquidation extends Model
 {
     protected $fillable = [
@@ -64,36 +93,59 @@ class Liquidation extends Model
         ];
     }
 
+    /**
+     * @param  Builder<Liquidation>  $query
+     * @return Builder<Liquidation>
+     */
     public function scopeByStatus(Builder $query, ?string $status): Builder
     {
         return $query->when($status, fn (Builder $inner) => $inner->where('status', $status));
     }
 
+    /**
+     * @param  Builder<Liquidation>  $query
+     * @return Builder<Liquidation>
+     */
     public function scopeOfContract(Builder $query, ?int $contractId): Builder
     {
         return $query->when($contractId, fn (Builder $inner) => $inner->where('contract_id', $contractId));
     }
 
+    /**
+     * @return BelongsTo<Contract, $this>
+     */
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /**
+     * @return HasMany<LiquidationItem, $this>
+     */
     public function items(): HasMany
     {
         return $this->hasMany(LiquidationItem::class)->orderBy('sequence');
     }
 
+    /**
+     * @return HasMany<LiquidationFile, $this>
+     */
     public function files(): HasMany
     {
         return $this->hasMany(LiquidationFile::class);

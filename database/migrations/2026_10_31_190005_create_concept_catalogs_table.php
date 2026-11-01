@@ -28,7 +28,7 @@ return new class extends Migration
         foreach ([
             'ck_cc_side' => "side IN ('earning', 'deduction')",
             'ck_cc_base' => "base_kind IN ('prestacional', 'vacacional', 'salario_pendiente', 'otro', 'manual')",
-            'ck_cc_div' => "default_divisor IS NULL OR default_divisor > 0",
+            'ck_cc_div' => 'default_divisor IS NULL OR default_divisor > 0',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE concept_catalogs ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

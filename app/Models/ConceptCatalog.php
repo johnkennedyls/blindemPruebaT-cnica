@@ -6,7 +6,24 @@ use App\Domain\Enum\BaseKind;
 use App\Domain\Enum\ConceptSide;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property ConceptSide $side
+ * @property string $formula_key
+ * @property BaseKind $base_kind
+ * @property int|null $default_divisor
+ * @property bool $applies_ss_contribution
+ * @property bool $is_statutory
+ * @property bool $is_system
+ * @property int $default_sequence
+ * @property bool $is_active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class ConceptCatalog extends Model
 {
     protected $fillable = [
@@ -37,11 +54,19 @@ class ConceptCatalog extends Model
         ];
     }
 
+    /**
+     * @param  Builder<ConceptCatalog>  $query
+     * @return Builder<ConceptCatalog>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * @param  Builder<ConceptCatalog>  $query
+     * @return Builder<ConceptCatalog>
+     */
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('default_sequence')->orderBy('name');

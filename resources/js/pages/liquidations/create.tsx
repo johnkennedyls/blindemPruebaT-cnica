@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { day, money } from '@/lib/format';
 import { index, show, store } from '@/routes/liquidations';
-import type { ContractCard, Option } from '@/types/liquidations';
+import type { ContractCard, Option } from '@/types';
 
 type ManualConcept = {
     code: string;

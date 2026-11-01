@@ -1,15 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
+import { Pager } from '@/components/pager';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { day, money } from '@/lib/format';
 import { index, show, create, excel } from '@/routes/liquidations';
-import type { ContractCard, Option, Paginated } from '@/types/liquidations';
+import type { ContractCard, Option, Paginated } from '@/types';
 
 type Filters = {
     status: string | null;
@@ -63,8 +63,6 @@ export default function LiquidationIndex({
             replace: true,
         });
     };
-
-    const pages = contracts.links.filter((link) => /^\d+$/.test(link.label));
 
     return (
         <>
@@ -284,36 +282,7 @@ export default function LiquidationIndex({
                     </>
                 )}
 
-                <nav className="flex flex-wrap items-center gap-2">
-                    {contracts.prev_page_url ? (
-                        <Button asChild variant="outline" size="sm">
-                            <Link href={contracts.prev_page_url}>Anterior</Link>
-                        </Button>
-                    ) : null}
-
-                    {pages.map((page) => (
-                        <Link
-                            key={page.label}
-                            href={page.url ?? index().url}
-                            className={cn(
-                                'neu-raised h-9 w-9 rounded-xl text-sm',
-                                page.active
-                                    ? 'btn-taxi font-bold'
-                                    : 'text-muted-foreground',
-                            )}
-                        >
-                            {page.label}
-                        </Link>
-                    ))}
-
-                    {contracts.next_page_url ? (
-                        <Button asChild variant="outline" size="sm">
-                            <Link href={contracts.next_page_url}>
-                                Siguiente
-                            </Link>
-                        </Button>
-                    ) : null}
-                </nav>
+                <Pager page={contracts} label="Paginación de liquidaciones" />
             </div>
         </>
     );

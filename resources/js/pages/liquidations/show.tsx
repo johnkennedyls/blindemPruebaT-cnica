@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { count, day, money, quantity } from '@/lib/format';
 import { excel, index } from '@/routes/liquidations';
-import type { ContractCard, LiquidationDocument } from '@/types/liquidations';
+import type { ContractCard, LiquidationDocument } from '@/types';
 
 type Props = {
     liquidation: LiquidationDocument;

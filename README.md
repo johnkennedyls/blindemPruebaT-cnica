@@ -106,6 +106,23 @@ administrador además edita las tablas paramétricas. El rol se guarda en la col
 y está fuera de `$fillable`, así que ningún formulario puede asignárselo por relleno masivo: cambiar
 un rol es una acción explícita, no un campo más del request.
 
+## Flujos de la aplicación
+
+1. **Contratos** (`Contratos` en el menú): listado con búsqueda por código, trabajador o documento y
+   filtro por estado y empresa. Ambos perfiles crean, editan y eliminan contratos; el colaborador
+   solo para las empresas que se le asignaron. Un contrato cerrado exige fecha de retiro y causal;
+   dos contratos solapados del mismo trabajador se rechazan a nivel de validación y de base (CHECK
+   de exclusión PostgreSQL).
+2. **Liquidación** (`Liquidaciones`): cada contrato liquidable muestra el botón *Liquidar*. La pantalla
+   filtrada por estado, tipo de documento y número de documento cumple el formato estándar, guarda los
+   conceptos congelados con su fórmula y genera el folio `LIQ-AAAA-00001`; el XLSX sale con la
+   exportación por liquidación.
+3. **Parámetros** (solo administrador): gestión CRUD de tipos de documento, cargos, tipos de contrato,
+   motivos de retiro y salarios mínimos (SMLMV y auxilio por año). Las reglas de cada catálogo —
+   singular/plural, unicidad, si admite desactivación y de qué depende su borrado — se declaran en
+   `app/Http/Parametrics/ParametricRegistry.php`; el controlador, la validación y las pantallas son
+   genéricas. Un catálogo usado por contratos o trabajadores no se borra: se desactiva.
+
 ## Pruebas
 
 ```bash

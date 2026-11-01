@@ -21,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class TerminationReason extends Model
+class TerminationReason extends Model implements ParametricCatalog
 {
     protected $fillable = [
         'code',
@@ -59,5 +59,19 @@ class TerminationReason extends Model
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function detailLabel(): string
+    {
+        $parts = [
+            $this->classification->label(),
+            $this->indemnization_rule->label(),
+        ];
+
+        if ($this->applies_sanction_art65) {
+            $parts[] = 'Sanción art. 65';
+        }
+
+        return implode(' · ', $parts);
     }
 }

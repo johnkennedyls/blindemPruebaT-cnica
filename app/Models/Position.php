@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class Position extends Model
+class Position extends Model implements ParametricCatalog
 {
     protected $fillable = [
         'code',
@@ -56,5 +56,13 @@ class Position extends Model
         return $this->area
             ? "{$this->name} · {$this->area}"
             : $this->name;
+    }
+
+    public function detailLabel(): string
+    {
+        return implode(' · ', array_filter([
+            $this->area,
+            $this->level !== null ? "Nivel {$this->level}" : null,
+        ]));
     }
 }

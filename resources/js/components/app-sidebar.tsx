@@ -1,10 +1,12 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     Building2,
     Calculator,
+    FileText,
     FolderGit2,
     LayoutGrid,
+    SlidersHorizontal,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -21,12 +23,14 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { index as companies } from '@/routes/companies';
+import { index as contracts } from '@/routes/contracts';
 import { index as liquidations } from '@/routes/liquidations';
+import * as parametrics from '@/routes/parametrics';
 import { index as workers } from '@/routes/workers';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
     {
         title: 'Panel',
         href: dashboard(),
@@ -36,6 +40,11 @@ const mainNavItems: NavItem[] = [
         title: 'Liquidaciones',
         href: liquidations().url,
         icon: Calculator,
+    },
+    {
+        title: 'Contratos',
+        href: contracts().url,
+        icon: FileText,
     },
     {
         title: 'Trabajadores',
@@ -63,6 +72,21 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const isAdmin = usePage().props.auth.is_admin;
+
+    const mainNavItems: NavItem[] = [
+        ...baseNavItems,
+        ...(isAdmin
+            ? [
+                  {
+                      title: 'Parámetros',
+                      href: parametrics.index({ resource: 'tipos-de-documento' }).url,
+                      icon: SlidersHorizontal,
+                  } satisfies NavItem,
+              ]
+            : []),
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

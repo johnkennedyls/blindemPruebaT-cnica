@@ -55,10 +55,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
 
             setQrCodeSvg(svg);
         } catch {
-            setErrors((prev) => [
-                ...prev,
-                'No se pudo obtener el código QR',
-            ]);
+            setErrors((prev) => [...prev, 'No se pudo obtener el código QR']);
             setQrCodeSvg(null);
         }
     }, [submit]);

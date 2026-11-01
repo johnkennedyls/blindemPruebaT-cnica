@@ -1,5 +1,14 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import {
+    BookOpen,
+    Building2,
+    Calculator,
+    Folder,
+    LayoutGrid,
+    Menu,
+    Search,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -33,6 +42,9 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useInitials } from '@/hooks/use-initials';
 import { cn, toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { index as companies } from '@/routes/companies';
+import { index as liquidations } from '@/routes/liquidations';
+import { index as workers } from '@/routes/workers';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 type Props = {
@@ -45,17 +57,32 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Liquidaciones',
+        href: liquidations().url,
+        icon: Calculator,
+    },
+    {
+        title: 'Trabajadores',
+        href: workers().url,
+        icon: Users,
+    },
+    {
+        title: 'Empresas',
+        href: companies().url,
+        icon: Building2,
+    },
 ];
 
 const rightNavItems: NavItem[] = [
     {
         title: 'Repositorio',
-        href: 'https://github.com/laravel/react-starter-kit',
+        href: 'https://github.com/johnkennedyls/blindemPruebaT-cnica',
         icon: Folder,
     },
     {
         title: 'Documentación',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: 'https://github.com/johnkennedyls/blindemPruebaT-cnica/blob/main/README.md',
         icon: BookOpen,
     },
 ];
@@ -73,7 +100,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
         <>
             <div className="border-b border-sidebar-border/80">
                 <div className="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
-                    {/* Mobile Menu */}
                     <div className="lg:hidden">
                         <Sheet>
                             <SheetTrigger asChild>
@@ -142,7 +168,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                         <AppLogo />
                     </Link>
 
-                    {/* Desktop Navigation */}
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">

@@ -52,8 +52,7 @@ export default function PasskeyVerify({
                     {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
                     {isLoading
                         ? (loadingLabel ?? 'Autenticando...')
-                        : (label ??
-                          'Iniciar sesión con una clave de acceso')}
+                        : (label ?? 'Iniciar sesión con una clave de acceso')}
                 </Button>
                 {error && (
                     <InputError message={error} className="text-center" />

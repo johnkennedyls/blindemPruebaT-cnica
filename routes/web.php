@@ -3,18 +3,23 @@
 use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LiquidationController;
 use App\Http\Controllers\ParametricController;
 use App\Http\Controllers\WorkerController;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function (Request $request): RedirectResponse {
+    return to_route($request->user() === null ? 'login' : 'dashboard');
+})->name('home');
 
 Route::get('documentacion/api', [ApiDocsController::class, 'ui'])->name('api-docs.ui');
 Route::get('documentacion/api/spec.json', [ApiDocsController::class, 'spec'])->name('api-docs.spec');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('liquidaciones', [LiquidationController::class, 'index'])->name('liquidations.index');
     Route::get('liquidaciones/{liquidation}', [LiquidationController::class, 'show'])->name('liquidations.show');

@@ -20,11 +20,7 @@ type Props = {
     filters: { q: string | null };
 };
 
-export default function ParametricsIndex({
-    definition,
-    rows,
-    filters,
-}: Props) {
+export default function ParametricsIndex({ definition, rows, filters }: Props) {
     const [term, setTerm] = useState(filters.q ?? '');
     const baseUrl = index({ resource: definition.slug }).url;
 
@@ -64,7 +60,11 @@ export default function ParametricsIndex({
                             className="mt-1"
                         />
                     </div>
-                    <Button type="submit" size="sm" className="btn-taxi border-0">
+                    <Button
+                        type="submit"
+                        size="sm"
+                        className="btn-taxi border-0"
+                    >
                         Buscar
                     </Button>
                     {filters.q ? (
@@ -76,7 +76,9 @@ export default function ParametricsIndex({
 
                 <p className="tabular text-sm text-muted-foreground">
                     {rows.total}{' '}
-                    {rows.total === 1 ? definition.one : definition.title.toLowerCase()}
+                    {rows.total === 1
+                        ? definition.one
+                        : definition.title.toLowerCase()}
                 </p>
 
                 {rows.data.length === 0 ? (
@@ -137,17 +139,14 @@ export default function ParametricsIndex({
                                                 {row.secondary ?? '—'}
                                             </td>
                                             {definition.usage_label ? (
-                                                <td className="text-right px-4 py-3">
-                                                    {row.usage_count ===
-                                                    null ? (
-                                                        '—'
-                                                    ) : (
-                                                        count(
-                                                            row.usage_count,
-                                                            definition.usage_label,
-                                                            `${definition.usage_label}s`,
-                                                        )
-                                                    )}
+                                                <td className="px-4 py-3 text-right">
+                                                    {row.usage_count === null
+                                                        ? '—'
+                                                        : count(
+                                                              row.usage_count,
+                                                              definition.usage_label,
+                                                              `${definition.usage_label}s`,
+                                                          )}
                                                 </td>
                                             ) : null}
                                             {definition.has_pause_state ? (
@@ -165,7 +164,7 @@ export default function ParametricsIndex({
                                                     </Badge>
                                                 </td>
                                             ) : null}
-                                            <td className="text-right px-4 py-3">
+                                            <td className="px-4 py-3 text-right">
                                                 <Button
                                                     asChild
                                                     variant="outline"
@@ -175,8 +174,7 @@ export default function ParametricsIndex({
                                                         href={edit({
                                                             resource:
                                                                 definition.slug,
-                                                            parametric:
-                                                                row.id,
+                                                            parametric: row.id,
                                                         })}
                                                     >
                                                         {row.primary}
@@ -191,7 +189,10 @@ export default function ParametricsIndex({
                     </>
                 )}
 
-                <Pager page={rows} label={`Paginación de ${definition.title}`} />
+                <Pager
+                    page={rows}
+                    label={`Paginación de ${definition.title}`}
+                />
             </div>
         </>
     );
@@ -230,13 +231,13 @@ function RowCard({
                     )}
                 </p>
             ) : null}
-            <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="mt-4 w-full"
-            >
-                <Link href={edit({ resource: definition.slug, parametric: row.id })}>
+            <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+                <Link
+                    href={edit({
+                        resource: definition.slug,
+                        parametric: row.id,
+                    })}
+                >
                     Editar {definition.one}
                 </Link>
             </Button>

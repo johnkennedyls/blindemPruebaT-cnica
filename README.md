@@ -113,7 +113,7 @@ un rol es una acción explícita, no un campo más del request.
    solo para las empresas que se le asignaron. Un contrato cerrado exige fecha de retiro y causal;
    dos contratos solapados del mismo trabajador se rechazan a nivel de validación y de base (CHECK
    de exclusión PostgreSQL).
-2. **Liquidación** (`Liquidaciones`): cada contrato liquidable muestra el botón *Liquidar*. La pantalla
+2. **Liquidación** (`Liquidaciones`): cada contrato liquidable muestra el botón _Liquidar_. La pantalla
    filtrada por estado, tipo de documento y número de documento cumple el formato estándar, guarda los
    conceptos congelados con su fórmula y genera el folio `LIQ-AAAA-00001`; el XLSX sale con la
    exportación por liquidación.
@@ -144,9 +144,9 @@ Toda la aplicación está documentada con OpenAPI 3.1 usando `zircote/swagger-ph
 vive como atributos PHP en `app/OpenApi/` (una carpeta por módulo, esquemas de dominio en
 `app/OpenApi/Schemas/`) y se sirve así:
 
-| URL                          | Qué entrega                                                    |
-|------------------------------|----------------------------------------------------------------|
-| `/documentacion/api`         | Swagger UI (consola OpenAPI 3.1 con todos los endpoints)        |
+| URL                            | Qué entrega                                                       |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `/documentacion/api`           | Swagger UI (consola OpenAPI 3.1 con todos los endpoints)          |
 | `/documentacion/api/spec.json` | Especificación OpenAPI 3.1 generada en vivo (`ApiDocsController`) |
 
 La generación es programática: `ApiDocsController::build()` recorre `app/OpenApi/` con

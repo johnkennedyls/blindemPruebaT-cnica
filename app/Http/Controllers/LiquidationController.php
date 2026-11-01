@@ -16,6 +16,7 @@ use App\Http\Presenters\ContractPresenter;
 use App\Http\Presenters\LiquidationPresenter;
 use App\Http\Requests\StoreLiquidationRequest;
 use App\Infrastructure\Auditing\ActivityLogger;
+use App\Infrastructure\Export\LiquidationWorkbookExporter;
 use App\Models\Contract;
 use App\Models\DocumentType;
 use App\Models\Liquidation;
@@ -25,6 +26,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LiquidationController extends Controller
 {
@@ -161,5 +163,27 @@ class LiquidationController extends Controller
             'liquidation' => LiquidationPresenter::document($liquidation),
             'contract' => ContractPresenter::card($liquidation->contract),
         ]);
+    }
+
+    public function excel(Liquidation $liquidation, LiquidationWorkbookExporter $exporter): BinaryFileResponse
+    {
+        $liquidation->load([
+            'contract.worker',
+            'contract.company',
+            'contract.contractType',
+            'contract.position',
+            'contract.terminationReason',
+            'items',
+        ]);
+
+        $this->authorize('view', $liquidation);
+
+        return response()
+            ->download(
+                $exporter->export($liquidation),
+                $exporter->filename($liquidation),
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            )
+            ->deleteFileAfterSend();
     }
 }

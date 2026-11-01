@@ -21,6 +21,8 @@ use Database\Seeders\PositionSeeder;
 use Database\Seeders\TerminationReasonSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Tests\TestCase;
 
 class LiquidationFlowTest extends TestCase
@@ -278,9 +280,75 @@ class LiquidationFlowTest extends TestCase
         $this->assertSame('prestacional', $liquidation->variant->value);
     }
 
+    public function test_el_excel_descargado_reproduce_los_numeros_del_documento(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+        $liquidation = $this->liquidationOf($contract);
+
+        $sheet = $this->exportedSheet($liquidation, $user);
+
+        $this->assertSame('LIQUIDACIÓN DE CONTRATO DE TRABAJO E INDEMNIZACIÓN', $sheet->getCell('A1')->getValue());
+        $this->assertSame($contract->worker->fullName(), $sheet->getCell('B5')->getValue());
+        $this->assertSame(2150000.0, (float) $sheet->getCell('B'.$this->rowOf($sheet, 'Cesantías'))->getValue());
+        $this->assertSame(1075000.0, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'Cesantías'))->getValue());
+        $this->assertSame('Menor a 10 SMLMV', $sheet->getCell('E'.$this->rowOf($sheet, 'Sueldo Base para Indemnización:'))->getValue());
+        $this->assertSame(30.0, (float) $sheet->getCell('B'.$this->rowOf($sheet, 'Días a Indemnizar (1er Año):'))->getValue());
+        $this->assertSame(45.972602739726, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'Días a Indemnizar (1er Año):'))->getValue());
+        $this->assertSame(4434027.0, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'Total Días a Indemnizar:'))->getValue());
+        $this->assertSame(7614926.0, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'NETO TOTAL A RECIBIR (A - B)'))->getCalculatedValue());
+    }
+
+    public function test_el_excel_prestacional_omite_el_bloque_de_indemnizacion(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['variant' => 'prestacional']));
+
+        $liquidation = Liquidation::query()->sole();
+        $sheet = $this->exportedSheet($liquidation, $user);
+
+        $this->assertSame('LIQUIDACIÓN DE CONTRATO DE TRABAJO', $sheet->getCell('A1')->getValue());
+        $this->assertStringNotContainsString('INDEMNIZACIÓN POR DESPIDO', (string) $sheet->getCell('A26')->getValue());
+        $this->assertSame(3180899.0, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'NETO TOTAL A RECIBIR (A - B)'))->getCalculatedValue());
+    }
+
+    public function test_un_tercero_no_descarga_el_excel_de_otra_liquidacion(): void
+    {
+        $owner = $this->admin();
+        $liquidation = $this->liquidationOf($this->excelContract($owner));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('liquidations.excel', $liquidation))
+            ->assertForbidden();
+    }
+
     private function admin(): User
     {
         return User::factory()->create(['role' => 'administrator']);
+    }
+
+    private function exportedSheet(Liquidation $liquidation, User $user): Worksheet
+    {
+        $response = $this->actingAs($user)->get(route('liquidations.excel', $liquidation));
+
+        $response->assertOk();
+        $response->assertDownload($liquidation->folio.'.xlsx');
+
+        return IOFactory::load($response->getFile()->getPathname())->getActiveSheet();
+    }
+
+    private function rowOf(Worksheet $sheet, string $label): int
+    {
+        for ($row = 1; $row <= 80; $row++) {
+            if ((string) $sheet->getCell('A'.$row)->getValue() === $label) {
+                return $row;
+            }
+        }
+
+        $this->fail("El Excel exportado no tiene el renglón {$label}.");
     }
 
     /**

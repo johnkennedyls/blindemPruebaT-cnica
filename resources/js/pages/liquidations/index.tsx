@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { day, money } from '@/lib/format';
-import { create, index, show } from '@/routes/liquidations';
+import { index, show, create, excel } from '@/routes/liquidations';
 import type { ContractCard, Option, Paginated } from '@/types/liquidations';
 
 type Filters = {
@@ -249,30 +250,10 @@ export default function LiquidationIndex({
                                                 />
                                             </td>
                                             <td className="px-4 py-3 text-xs">
-                                                {contract.liquidations
-                                                    .length === 0 ? (
-                                                    <span className="text-muted-foreground">
-                                                        Sin folios
-                                                    </span>
-                                                ) : (
-                                                    contract.liquidations.map(
-                                                        (liquidation) => (
-                                                            <Link
-                                                                key={
-                                                                    liquidation.id
-                                                                }
-                                                                href={show(
-                                                                    liquidation.id,
-                                                                )}
-                                                                className="mr-2 underline underline-offset-2"
-                                                            >
-                                                                {
-                                                                    liquidation.folio
-                                                                }
-                                                            </Link>
-                                                        ),
-                                                    )
-                                                )}
+                                                <FolioLinks
+                                                    contract={contract}
+                                                    empty="Sin folios"
+                                                />
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 {contract.can_liquidate ? (
@@ -388,17 +369,43 @@ function ContractSummary({ contract }: { contract: ContractCard }) {
 
             {contract.liquidations.length > 0 ? (
                 <p className="mt-3 text-xs text-muted-foreground">
-                    {contract.liquidations.map((liquidation) => (
-                        <Link
-                            key={liquidation.id}
-                            href={show(liquidation.id)}
-                            className="mr-2 underline underline-offset-2"
-                        >
-                            {liquidation.folio}
-                        </Link>
-                    ))}
+                    <FolioLinks contract={contract} />
                 </p>
             ) : null}
         </article>
     );
+}
+
+function FolioLinks({
+    contract,
+    empty,
+}: {
+    contract: ContractCard;
+    empty?: string;
+}) {
+    if (contract.liquidations.length === 0) {
+        return <span className="text-muted-foreground">{empty}</span>;
+    }
+
+    return contract.liquidations.map((liquidation) => (
+        <span
+            key={liquidation.id}
+            className="mr-2 inline-flex items-center gap-1"
+        >
+            <Link
+                href={show(liquidation.id)}
+                className="underline underline-offset-2"
+            >
+                {liquidation.folio}
+            </Link>
+            <a
+                href={excel.url(liquidation.id)}
+                download
+                aria-label={`Descargar el Excel de la liquidación ${liquidation.folio}`}
+                className="text-muted-foreground hover:text-foreground"
+            >
+                <FileSpreadsheet className="size-3.5" />
+            </a>
+        </span>
+    ));
 }

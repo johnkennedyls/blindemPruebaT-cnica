@@ -5,41 +5,27 @@ namespace App\OpenApi;
 use OpenApi\Attributes as OA;
 
 /**
- * Endpoints generales: portada, sesión Fortify, passkeys y dashboard.
+ * Endpoints generales: raíz, sesión Fortify, passkeys y panel.
  */
 final class GeneralPaths
 {
     #[OA\Get(
         path: '/',
-        operationId: 'welcome.page',
-        summary: 'Página de bienvenida pública',
+        operationId: 'home.redirect',
+        summary: 'Raíz de la aplicación',
         tags: ['General'],
         security: [],
         responses: [
             new OA\Response(
-                response: '200',
-                description: 'Portada Inertia (`welcome`) pública.',
-                content: [
-                    new OA\MediaType(
-                        mediaType: 'text/html',
-                        example: '<!doctype html><html><body data-page=\'{"component":"welcome","props":{...}}\'></body></html>',
-                    ),
-                    new OA\MediaType(
-                        mediaType: 'application/json',
-                        example: [
-                            'component' => 'welcome',
-                            'props' => [
-                                'name' => 'Blindem',
-                                'sidebarOpen' => true,
-                                'auth' => ['user' => null, 'is_admin' => false],
-                            ],
-                        ],
-                    ),
+                response: '302',
+                description: 'Redirige a `/login` si no hay sesión y a `/dashboard` si el usuario ya entró.',
+                headers: [
+                    new OA\Header(header: 'Location', schema: new OA\Schema(type: 'string'), example: 'http://127.0.0.1:8321/login'),
                 ],
             ),
         ],
     )]
-    public function welcome(): void {}
+    public function home(): void {}
 
     #[OA\Get(
         path: '/login',
@@ -138,7 +124,7 @@ final class GeneralPaths
             new OA\Response(ref: '#/components/responses/Unauthenticated'),
             new OA\Response(
                 response: '200',
-                description: 'Home Inertia (`dashboard`) con el resumen del rol en sesión (`administrator` o `collaborator`).',
+                description: 'Panel Inertia (`dashboard`) con el conteo de contratos que el usuario en sesión puede ver y con los cinco retiros más antiguos sin liquidar.',
                 content: [
                     new OA\MediaType(mediaType: 'text/html', example: '<!doctype html>…'),
                     new OA\MediaType(
@@ -146,12 +132,18 @@ final class GeneralPaths
                         example: [
                             'component' => 'dashboard',
                             'props' => [
-                                'name' => 'Blindem',
+                                'name' => 'Blindem Liquidaciones',
                                 'auth' => [
                                     'user' => ['id' => 1, 'name' => 'Administrador Blindem', 'email' => 'admin@blindem.test'],
                                     'is_admin' => true,
                                 ],
-                                'sidebarOpen' => true,
+                                'summary' => [
+                                    'active' => 3,
+                                    'liquidatable' => 1,
+                                    'liquidated' => 1,
+                                    'liquidations' => 2,
+                                ],
+                                'pending' => [['id' => 5, 'code' => 'CTR-000005', 'can_liquidate' => true]],
                             ],
                         ],
                     ),

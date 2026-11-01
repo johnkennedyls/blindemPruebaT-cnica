@@ -53,7 +53,13 @@ class LiquidationWorkbookExporter
 
     public function export(Liquidation $liquidation): string
     {
-        $path = tempnam(sys_get_temp_dir(), 'liquidacion-').'.xlsx';
+        $directory = storage_path('app/private/exports');
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+
+        $path = $directory.'/liquidacion-'.uniqid('', true).'.xlsx';
 
         (new Xlsx($this->book($liquidation)))->save($path);
 

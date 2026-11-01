@@ -138,6 +138,29 @@ solapados del mismo trabajador, un salario en cero, un rango de fechas invertido
 documento duplicado, una llave foránea inexistente y dos correos que solo difieren en mayúsculas.
 Ninguna pasa.
 
+## Documentación de API (Swagger/OpenAPI)
+
+Toda la aplicación está documentada con OpenAPI 3.1 usando `zircote/swagger-php`. La especificación
+vive como atributos PHP en `app/OpenApi/` (una carpeta por módulo, esquemas de dominio en
+`app/OpenApi/Schemas/`) y se sirve así:
+
+| URL                          | Qué entrega                                                    |
+|------------------------------|----------------------------------------------------------------|
+| `/documentacion/api`         | Swagger UI (consola OpenAPI 3.1 con todos los endpoints)        |
+| `/documentacion/api/spec.json` | Especificación OpenAPI 3.1 generada en vivo (`ApiDocsController`) |
+
+La generación es programática: `ApiDocsController::build()` recorre `app/OpenApi/` con
+`OpenApi\Builder` y responde JSON; `tests/Feature/ApiDocsTest.php` verifica que la especificación
+exponga los paths de todos los módulos (contratos, liquidaciones, empresas, trabajadores,
+paramétricas y configuración de la cuenta) y que cada `RequestBody` tenga su esquema definido.
+
+Los endpoints son los de una SPA Inertia: un `GET` entrega la página HTML y, con el header
+`X-Inertia`, el mismo JSON `{ component, props }` que monta React; ambos formatos están documentados
+con ejemplos reales por endpoint (incluido el payload completo de una liquidación con sus trazas de
+cálculo y la respuesta binaria de la exportación a Excel). La autenticación documentada es la de la
+propia aplicación: cookie de sesión (`WebSession`) más header `X-CSRF-TOKEN` (`CsrfHeader`) en las
+peticiones de escritura.
+
 ## Estructura
 
 ```

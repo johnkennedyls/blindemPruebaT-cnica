@@ -59,9 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'role' => UserRole::class,
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
-            /* @chisel-2fa */
             'two_factor_confirmed_at' => 'datetime',
-            /* @end-chisel-2fa */
         ];
     }
 

@@ -2,6 +2,17 @@
 
 namespace App\Providers;
 
+use App\Domain\Calculation\Calculators\AuxilioTransporteCalculator;
+use App\Domain\Calculation\Calculators\CesantiasCalculator;
+use App\Domain\Calculation\Calculators\IndemnizacionCalculator;
+use App\Domain\Calculation\Calculators\InteresesCesantiasCalculator;
+use App\Domain\Calculation\Calculators\ManualValueCalculator;
+use App\Domain\Calculation\Calculators\PrimaCalculator;
+use App\Domain\Calculation\Calculators\SalarioPendienteCalculator;
+use App\Domain\Calculation\Calculators\SocialSecurityContributionCalculator;
+use App\Domain\Calculation\Calculators\VacacionesCalculator;
+use App\Domain\Calculation\Indemnization\IndemnizationStrategyFactory;
+use App\Domain\Calculation\LiquidationEngine;
 use App\Domain\Contracts\ConceptCatalogRepository;
 use App\Domain\Contracts\LegalParameterRepository;
 use App\Domain\Contracts\MinimumWageRepository;
@@ -24,6 +35,25 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(LegalParameterRepository::class, EloquentLegalParameterRepository::class);
         $this->app->singleton(MinimumWageRepository::class, EloquentMinimumWageRepository::class);
         $this->app->singleton(ConceptCatalogRepository::class, EloquentConceptCatalogRepository::class);
+
+        $this->app->singleton(LiquidationEngine::class, fn ($app): LiquidationEngine => new LiquidationEngine(
+            $app->make(ConceptCatalogRepository::class),
+            $app->make(MinimumWageRepository::class),
+            $app->make(LegalParameterRepository::class),
+            $app->make(IndemnizationStrategyFactory::class),
+            [
+                new CesantiasCalculator,
+                new InteresesCesantiasCalculator,
+                new PrimaCalculator,
+                new VacacionesCalculator,
+                new SalarioPendienteCalculator,
+                new AuxilioTransporteCalculator,
+                new IndemnizacionCalculator,
+                new ManualValueCalculator,
+                new SocialSecurityContributionCalculator('health_contribution', 'health_employee_rate'),
+                new SocialSecurityContributionCalculator('pension_contribution', 'pension_employee_rate'),
+            ],
+        ));
     }
 
     /**

@@ -6,6 +6,22 @@ use App\Domain\Enum\ConceptSide;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $liquidation_id
+ * @property string $concept_code
+ * @property string $concept_name
+ * @property ConceptSide $side
+ * @property numeric-string $calculation_base
+ * @property numeric-string $quantity
+ * @property numeric-string|null $rate
+ * @property int|null $divisor
+ * @property string $formula_text
+ * @property string|null $calc_trace
+ * @property numeric-string $amount
+ * @property int $sequence
+ * @property bool $applies_ss_contribution
+ */
 class LiquidationItem extends Model
 {
     public $timestamps = false;
@@ -41,6 +57,9 @@ class LiquidationItem extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Liquidation, $this>
+     */
     public function liquidation(): BelongsTo
     {
         return $this->belongsTo(Liquidation::class);

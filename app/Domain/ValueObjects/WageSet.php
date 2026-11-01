@@ -8,6 +8,5 @@ final class WageSet
         public readonly int $year,
         public readonly Money $minimumWage,
         public readonly Money $transportAuxiliary,
-    ) {
-    }
+    ) {}
 }

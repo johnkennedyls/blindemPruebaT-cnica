@@ -4,7 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $user_id
+ * @property int $company_id
+ * @property Carbon|null $granted_at
+ */
 class UserCompany extends Pivot
 {
     protected $table = 'user_company';
@@ -26,11 +32,17 @@ class UserCompany extends Pivot
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

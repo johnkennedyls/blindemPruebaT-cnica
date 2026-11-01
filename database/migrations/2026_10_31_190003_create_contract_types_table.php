@@ -25,7 +25,7 @@ return new class extends Migration
         foreach ([
             'ck_ct_modality' => "modality IN ('indefinido', 'termino_fijo', 'obra_o_labor', 'aprendizaje', 'ocasional', 'servicios')",
             'ck_ct_rule' => "indemnization_rule IN ('art64_segun_salario', 'art64_lt_a', 'art64_lt_b', 'plazo_restante', 'ninguna')",
-            'ck_ct_months' => "statutory_max_months IS NULL OR statutory_max_months > 0",
+            'ck_ct_months' => 'statutory_max_months IS NULL OR statutory_max_months > 0',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE contract_types ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

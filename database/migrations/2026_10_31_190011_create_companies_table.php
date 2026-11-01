@@ -28,7 +28,7 @@ return new class extends Migration
         });
 
         foreach ([
-            'ck_company_nit' => "char_length(nit) BETWEEN 8 AND 15",
+            'ck_company_nit' => 'char_length(nit) BETWEEN 8 AND 15',
             'ck_company_name' => "business_name <> ''",
         ] as $name => $expression) {
             DB::statement("ALTER TABLE companies ADD CONSTRAINT {$name} CHECK ({$expression})");

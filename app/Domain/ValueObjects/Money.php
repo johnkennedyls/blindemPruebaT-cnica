@@ -10,9 +10,10 @@ final class Money
 
     private const DIVIDE_SCALE = 12;
 
-    private function __construct(private readonly string $amount)
-    {
-    }
+    /**
+     * @param  numeric-string  $amount
+     */
+    private function __construct(private readonly string $amount) {}
 
     public static function of(mixed $value): self
     {
@@ -26,40 +27,38 @@ final class Money
             throw new InvalidArgumentException('El dinero se construye solo desde una cadena o un entero.');
         }
 
-        if (! is_numeric($value)) {
-            throw new InvalidArgumentException("Valor monetario inválido: {$value}");
-        }
-
-        return new self(bcadd((string) $value, '0', self::DIVIDE_SCALE));
+        return self::make(bcadd(self::text($value), '0', self::DIVIDE_SCALE));
     }
 
     public static function zero(): self
     {
-        return new self(bcadd('0', '0', self::DIVIDE_SCALE));
+        return self::make(bcadd('0', '0', self::DIVIDE_SCALE));
     }
 
     public function times(string|int $factor): self
     {
-        return new self(bcmul($this->amount, (string) $factor, self::MULTIPLY_SCALE));
+        return self::make(bcmul($this->amount, self::text($factor), self::MULTIPLY_SCALE));
     }
 
     public function dividedBy(string|int $divisor): self
     {
-        if (bccomp((string) $divisor, '0', 0) === 0) {
+        $divider = self::text($divisor);
+
+        if (bccomp($divider, '0', 0) === 0) {
             throw new InvalidArgumentException('División de dinero por cero.');
         }
 
-        return new self(bcdiv($this->amount, (string) $divisor, self::DIVIDE_SCALE));
+        return self::make(bcdiv($this->amount, $divider, self::DIVIDE_SCALE));
     }
 
     public function plus(self $other): self
     {
-        return new self(bcadd($this->amount, $other->amount, self::DIVIDE_SCALE));
+        return self::make(bcadd($this->amount, $other->amount, self::DIVIDE_SCALE));
     }
 
     public function minus(self $other): self
     {
-        return new self(bcsub($this->amount, $other->amount, self::DIVIDE_SCALE));
+        return self::make(bcsub($this->amount, $other->amount, self::DIVIDE_SCALE));
     }
 
     public function rounded(): self
@@ -74,7 +73,7 @@ final class Money
             $whole = bcadd($whole, '1', 0);
         }
 
-        return new self(($negative ? '-' : '').$whole);
+        return self::make(($negative ? '-' : '').$whole);
     }
 
     public function negative(): self
@@ -120,5 +119,28 @@ final class Money
     public function __toString(): string
     {
         return $this->amount();
+    }
+
+    private static function make(string $amount): self
+    {
+        if (! is_numeric($amount)) {
+            throw new InvalidArgumentException("Valor monetario inválido: {$amount}");
+        }
+
+        return new self($amount);
+    }
+
+    /**
+     * @return numeric-string
+     */
+    private static function text(string|int $value): string
+    {
+        $text = (string) $value;
+
+        if (! is_numeric($text)) {
+            throw new InvalidArgumentException("Valor monetario inválido: {$text}");
+        }
+
+        return $text;
     }
 }

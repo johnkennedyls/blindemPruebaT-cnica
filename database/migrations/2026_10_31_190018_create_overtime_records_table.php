@@ -23,8 +23,8 @@ return new class extends Migration
 
         foreach ([
             'ck_otr_type' => "type IN ('extra_diurna', 'extra_nocturna', 'dominical', 'recargo')",
-            'ck_otr_hours' => "hours > 0 AND hours <= 24",
-            'ck_otr_amount' => "amount >= 0",
+            'ck_otr_hours' => 'hours > 0 AND hours <= 24',
+            'ck_otr_amount' => 'amount >= 0',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE overtime_records ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

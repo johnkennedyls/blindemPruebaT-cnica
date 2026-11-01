@@ -31,9 +31,9 @@ return new class extends Migration
 
         foreach ([
             'ck_item_side' => "side IN ('earning', 'deduction')",
-            'ck_item_amount' => "amount >= 0",
-            'ck_item_div' => "divisor IS NULL OR divisor > 0",
-            'ck_item_seq' => "sequence > 0",
+            'ck_item_amount' => 'amount >= 0',
+            'ck_item_div' => 'divisor IS NULL OR divisor > 0',
+            'ck_item_seq' => 'sequence > 0',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE liquidation_items ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

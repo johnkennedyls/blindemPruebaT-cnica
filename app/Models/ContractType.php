@@ -7,7 +7,21 @@ use App\Domain\Enum\IndemnizationRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property ContractModality $modality
+ * @property bool $requires_scheduled_end
+ * @property int|null $statutory_max_months
+ * @property bool $applies_indemnization
+ * @property IndemnizationRule|null $indemnization_rule
+ * @property bool $is_active
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class ContractType extends Model
 {
     protected $fillable = [
@@ -33,11 +47,18 @@ class ContractType extends Model
         ];
     }
 
+    /**
+     * @param  Builder<ContractType>  $query
+     * @return Builder<ContractType>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * @return HasMany<Contract, $this>
+     */
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);

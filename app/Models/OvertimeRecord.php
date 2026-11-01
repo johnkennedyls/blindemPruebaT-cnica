@@ -5,7 +5,16 @@ namespace App\Models;
 use App\Domain\Enum\OvertimeType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $contract_id
+ * @property Carbon $occurrence_date
+ * @property OvertimeType $type
+ * @property numeric-string $hours
+ * @property numeric-string $amount
+ */
 class OvertimeRecord extends Model
 {
     public $timestamps = false;
@@ -29,6 +38,9 @@ class OvertimeRecord extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Contract, $this>
+     */
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);

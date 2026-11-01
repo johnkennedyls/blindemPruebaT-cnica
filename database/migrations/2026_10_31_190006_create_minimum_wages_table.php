@@ -21,10 +21,10 @@ return new class extends Migration
         });
 
         foreach ([
-            'ck_mw_year' => "year BETWEEN 2000 AND 2100",
-            'ck_mw_smlmv' => "smlmv > 0",
-            'ck_mw_aux' => "transport_auxiliary >= 0",
-            'ck_mw_period' => "effective_to >= effective_from",
+            'ck_mw_year' => 'year BETWEEN 2000 AND 2100',
+            'ck_mw_smlmv' => 'smlmv > 0',
+            'ck_mw_aux' => 'transport_auxiliary >= 0',
+            'ck_mw_period' => 'effective_to >= effective_from',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE minimum_wages ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

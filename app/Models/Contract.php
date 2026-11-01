@@ -4,16 +4,46 @@ namespace App\Models;
 
 use App\Domain\Enum\ContractStatus;
 use App\Domain\Enum\TransportAuxiliaryMode;
+use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property int $worker_id
+ * @property int $company_id
+ * @property int $contract_type_id
+ * @property int $position_id
+ * @property int|null $termination_reason_id
+ * @property int $created_by
+ * @property Carbon $start_date
+ * @property Carbon|null $end_date
+ * @property Carbon|null $scheduled_end_date
+ * @property Carbon|null $salary_effective_from
+ * @property numeric-string $base_salary_monthly
+ * @property numeric-string $transport_auxiliary_monthly
+ * @property TransportAuxiliaryMode $transport_auxiliary_mode
+ * @property numeric-string $overtime_average_monthly
+ * @property ContractStatus $status
+ * @property int $pending_salary_days
+ * @property int $pending_vacation_days
+ * @property string|null $notes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ */
 class Contract extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<ContractFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     protected $attributes = [
         'status' => ContractStatus::Activo->value,
@@ -67,66 +97,110 @@ class Contract extends Model
         ];
     }
 
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ContractStatus::Activo);
     }
 
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeByStatus(Builder $query, ?string $status): Builder
     {
         return $query->when($status, fn (Builder $inner) => $inner->where('status', $status));
     }
 
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeOfWorker(Builder $query, ?int $workerId): Builder
     {
         return $query->when($workerId, fn (Builder $inner) => $inner->where('worker_id', $workerId));
     }
 
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeOfCompany(Builder $query, ?int $companyId): Builder
     {
         return $query->when($companyId, fn (Builder $inner) => $inner->where('company_id', $companyId));
     }
 
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeCreatedBy(Builder $query, ?int $userId): Builder
     {
         return $query->when($userId, fn (Builder $inner) => $inner->where('created_by', $userId));
     }
 
+    /**
+     * @return BelongsTo<Worker, $this>
+     */
     public function worker(): BelongsTo
     {
         return $this->belongsTo(Worker::class);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * @return BelongsTo<ContractType, $this>
+     */
     public function contractType(): BelongsTo
     {
         return $this->belongsTo(ContractType::class);
     }
 
+    /**
+     * @return BelongsTo<Position, $this>
+     */
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class);
     }
 
+    /**
+     * @return BelongsTo<TerminationReason, $this>
+     */
     public function terminationReason(): BelongsTo
     {
         return $this->belongsTo(TerminationReason::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<Liquidation, $this>
+     */
     public function liquidations(): HasMany
     {
         return $this->hasMany(Liquidation::class);
     }
 
+    /**
+     * @return HasMany<OvertimeRecord, $this>
+     */
     public function overtimeRecords(): HasMany
     {
         return $this->hasMany(OvertimeRecord::class);

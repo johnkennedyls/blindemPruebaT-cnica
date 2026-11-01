@@ -65,22 +65,34 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         ];
     }
 
+    /**
+     * @return BelongsToMany<Company, $this>
+     */
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class, 'user_company')
             ->withPivot('granted_at');
     }
 
+    /**
+     * @return HasMany<Contract, $this>
+     */
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<Liquidation, $this>
+     */
     public function liquidations(): HasMany
     {
         return $this->hasMany(Liquidation::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<ActivityLog, $this>
+     */
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);

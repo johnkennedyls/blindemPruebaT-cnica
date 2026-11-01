@@ -41,15 +41,15 @@ return new class extends Migration
         });
 
         foreach ([
-            'ck_c_dates' => "end_date IS NULL OR end_date >= start_date",
-            'ck_c_sched' => "scheduled_end_date IS NULL OR scheduled_end_date > start_date",
-            'ck_c_salary' => "base_salary_monthly > 0",
-            'ck_c_aux' => "transport_auxiliary_monthly >= 0",
-            'ck_c_overtime' => "overtime_average_monthly >= 0",
+            'ck_c_dates' => 'end_date IS NULL OR end_date >= start_date',
+            'ck_c_sched' => 'scheduled_end_date IS NULL OR scheduled_end_date > start_date',
+            'ck_c_salary' => 'base_salary_monthly > 0',
+            'ck_c_aux' => 'transport_auxiliary_monthly >= 0',
+            'ck_c_overtime' => 'overtime_average_monthly >= 0',
             'ck_c_aux_mode' => "transport_auxiliary_mode IN ('auto', 'manual', 'sin_derecho')",
             'ck_c_status' => "status IN ('activo', 'terminado', 'en_liquidacion', 'liquidado')",
-            'ck_c_pending_days' => "pending_salary_days BETWEEN 0 AND 30",
-            'ck_c_pending_vac' => "pending_vacation_days BETWEEN 0 AND 365",
+            'ck_c_pending_days' => 'pending_salary_days BETWEEN 0 AND 30',
+            'ck_c_pending_vac' => 'pending_vacation_days BETWEEN 0 AND 365',
         ] as $name => $expression) {
             DB::statement("ALTER TABLE contracts ADD CONSTRAINT {$name} CHECK ({$expression})");
         }

@@ -16,6 +16,5 @@ final class ConceptDefinition
         public readonly ?int $defaultDivisor,
         public readonly bool $appliesSocialSecurity,
         public readonly int $sequence,
-    ) {
-    }
+    ) {}
 }

@@ -141,8 +141,9 @@ class LiquidationController extends Controller
             $request->user()->id,
         );
 
-        return to_route('liquidations.show', $liquidation)
-            ->with('status', "La liquidación {$receipt->folio} quedó guardada.");
+        Inertia::flash('toast', ['type' => 'success', 'message' => "La liquidación {$receipt->folio} quedó guardada."]);
+
+        return to_route('liquidations.show', $liquidation);
     }
 
     public function show(Request $request, Liquidation $liquidation): Response

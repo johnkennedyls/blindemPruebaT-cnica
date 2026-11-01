@@ -137,6 +137,45 @@ class Contract extends Model
      * @param  Builder<Contract>  $query
      * @return Builder<Contract>
      */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->role->isAdmin()) {
+            return $query;
+        }
+
+        $companyIds = $user->companies()->pluck('companies.id');
+
+        return $query->where(
+            fn (Builder $inner): Builder => $inner
+                ->where('created_by', $user->id)
+                ->orWhereIn('company_id', $companyIds),
+        );
+    }
+
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
+    public function scopeOfDocument(Builder $query, ?int $documentTypeId, ?string $documentNumber): Builder
+    {
+        $number = $documentNumber === null ? '' : trim($documentNumber);
+
+        if ($documentTypeId === null && $number === '') {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'worker',
+            fn (Builder $inner): Builder => $inner
+                ->when($documentTypeId, fn (Builder $byType): Builder => $byType->where('document_type_id', $documentTypeId))
+                ->when($number !== '', fn (Builder $byNumber): Builder => $byNumber->where('document_number', $number)),
+        );
+    }
+
+    /**
+     * @param  Builder<Contract>  $query
+     * @return Builder<Contract>
+     */
     public function scopeCreatedBy(Builder $query, ?int $userId): Builder
     {
         return $query->when($userId, fn (Builder $inner) => $inner->where('created_by', $userId));

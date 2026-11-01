@@ -1,0 +1,336 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Enum\ContractStatus;
+use App\Models\ActivityLog;
+use App\Models\Company;
+use App\Models\Contract;
+use App\Models\ContractType;
+use App\Models\DocumentType;
+use App\Models\Liquidation;
+use App\Models\TerminationReason;
+use App\Models\User;
+use App\Models\Worker;
+use Database\Seeders\ConceptCatalogSeeder;
+use Database\Seeders\ContractTypeSeeder;
+use Database\Seeders\DocumentTypeSeeder;
+use Database\Seeders\LegalParameterSeeder;
+use Database\Seeders\MinimumWageSeeder;
+use Database\Seeders\PositionSeeder;
+use Database\Seeders\TerminationReasonSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class LiquidationFlowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed([
+            DocumentTypeSeeder::class,
+            PositionSeeder::class,
+            ContractTypeSeeder::class,
+            TerminationReasonSeeder::class,
+            ConceptCatalogSeeder::class,
+            MinimumWageSeeder::class,
+            LegalParameterSeeder::class,
+        ]);
+    }
+
+    public function test_un_invitado_no_llega_a_la_pantalla_de_liquidaciones(): void
+    {
+        $this->get(route('liquidations.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_el_colaborador_ve_solo_los_contratos_que_le_corresponden(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+
+        $mine = $this->excelContract($owner);
+        $this->excelContract($other);
+        $liquidation = $this->liquidationOf($mine);
+
+        $this->actingAs($owner)
+            ->get(route('liquidations.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('liquidations/index')
+                ->where('contracts.total', 1)
+                ->where('contracts.data.0.code', $mine->code),
+            );
+
+        $this->actingAs($this->admin())
+            ->get(route('liquidations.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('contracts.total', 2));
+
+        $this->actingAs($other)
+            ->get(route('liquidations.show', $liquidation))
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->get(route('liquidations.show', $liquidation))
+            ->assertOk();
+    }
+
+    public function test_los_tres_filtros_estrechan_la_lista_de_contratos(): void
+    {
+        $admin = $this->admin();
+        $cedula = DocumentType::query()->where('code', 'CC')->sole();
+        $extranjero = DocumentType::query()->where('code', 'CE')->sole();
+
+        $terminado = $this->excelContract($admin, [
+            'document_type_id' => $cedula->id,
+            'document_number' => '1098760001',
+        ]);
+        $activo = $this->excelContract($admin, [
+            'document_type_id' => $extranjero->id,
+            'document_number' => '55443322',
+        ]);
+        $activo->update(['status' => ContractStatus::Activo]);
+
+        $this->assertFiltered($admin, ['status' => 'terminado'], $terminado);
+        $this->assertFiltered($admin, ['document_number' => '1098760001'], $terminado);
+        $this->assertFiltered($admin, ['document_type_id' => $extranjero->id], $activo);
+        $this->assertFiltered($admin, ['status' => 'activo', 'document_type_id' => $extranjero->id], $activo);
+        $this->assertFiltered($admin, ['status' => 'terminado', 'document_type_id' => $cedula->id], $terminado);
+        $this->assertFiltered($admin, ['status' => 'liquidado'], null);
+        $this->assertFiltered($admin, ['document_number' => '0000000000'], null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function assertFiltered(User $admin, array $query, ?Contract $expected): void
+    {
+        $this->actingAs($admin)
+            ->get(route('liquidations.index', $query))
+            ->assertInertia(function (Assert $page) use ($query, $expected) {
+                $page->where('contracts.total', $expected === null ? 0 : 1);
+
+                if ($expected !== null) {
+                    $page->where('contracts.data.0.code', $expected->code);
+                }
+
+                foreach ($query as $key => $value) {
+                    $page->where('filters.'.$key, $value);
+                }
+
+                return $page;
+            });
+    }
+
+    public function test_el_formulario_llega_con_los_campos_que_el_excel_digita_a_mano(): void
+    {
+        $contract = $this->excelContract();
+
+        $this->actingAs($this->admin())
+            ->get(route('liquidations.create', $contract))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('liquidations/create')
+                ->has('manualConcepts', 3)
+                ->where('suggestedVariant', 'con_indemnizacion')
+                ->where('variants', [
+                    ['value' => 'prestacional', 'label' => 'Liquidación prestacional'],
+                    ['value' => 'con_indemnizacion', 'label' => 'Liquidación con indemnización'],
+                ])
+                ->where('contract.worker.document', 'CC '.$contract->worker->document_number),
+            );
+    }
+
+    public function test_guardar_desde_la_pantalla_deja_la_liquidacion_del_excel(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload())
+            ->assertSessionHasNoErrors();
+
+        $liquidation = Liquidation::query()->with('items')->sole();
+
+        $this->assertSame('LIQ-2024-00001', $liquidation->folio);
+        $this->assertSame('7614926.00', $liquidation->net_total);
+        $this->assertSame('7688130.00', $liquidation->total_earned);
+        $this->assertCount(11, $liquidation->items);
+        $this->assertSame('en_liquidacion', $contract->fresh()->status->value);
+
+        $log = ActivityLog::query()->sole();
+
+        $this->assertSame('liquidar', $log->action->value);
+        $this->assertSame($user->id, $log->user_id);
+        $this->assertStringContainsString($liquidation->folio, $log->description);
+    }
+
+    public function test_los_campos_dejados_en_blanco_no_se_confunden_con_un_valor(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload([
+                'cesantias_days' => '',
+                'prima_days' => '',
+                'manual_values' => [
+                    'HORAS_EXTRAS' => '',
+                    'DESC_PRESTAMOS' => '',
+                    'DESC_OTRAS' => '',
+                ],
+                'observations' => '',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $liquidation = Liquidation::query()->with('items')->sole();
+
+        $this->assertSame('7614926.00', $liquidation->net_total);
+        $this->assertCount(9, $liquidation->items);
+        $this->assertNull($liquidation->observations);
+    }
+
+    public function test_la_fecha_no_puede_ser_anterior_al_inicio_del_contrato(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['settlement_date' => '2020-01-01']))
+            ->assertSessionHasErrors('settlement_date');
+
+        $this->assertSame(0, Liquidation::query()->count());
+    }
+
+    public function test_los_dias_de_vacaciones_son_obligatorios(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $payload = $this->payload();
+        unset($payload['vacation_days']);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $payload)
+            ->assertSessionHasErrors('vacation_days');
+
+        $this->assertSame(0, Liquidation::query()->count());
+    }
+
+    public function test_el_formato_de_la_liquidacion_debe_ser_uno_de_los_dos_del_excel(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['variant' => 'sin_indemnizacion']))
+            ->assertSessionHasErrors('variant');
+    }
+
+    public function test_un_contrato_activo_no_se_liquida(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+        $contract->update(['status' => ContractStatus::Activo]);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload())
+            ->assertForbidden();
+
+        $this->assertSame(0, Liquidation::query()->count());
+    }
+
+    public function test_la_liquidacion_guardada_se_muestra_con_todos_sus_renglones(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+        $liquidation = $this->liquidationOf($contract);
+
+        $this->actingAs($user)
+            ->get(route('liquidations.show', $liquidation))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('liquidations/show')
+                ->where('liquidation.folio', 'LIQ-2024-00001')
+                ->where('liquidation.totals.net', '7614926.00')
+                ->where('liquidation.bases.prestacional', '2150000.00')
+                ->has('liquidation.lines', 11)
+                ->where('liquidation.days.worked', 1204)
+                ->where('liquidation.indemnization.regla', 'Art. 64 lit. a (30 + 20 días)')
+                ->where('contract.code', $contract->code),
+            );
+    }
+
+    public function test_el_formato_prestacional_guarda_el_neto_sin_indemnizacion(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['variant' => 'prestacional']))
+            ->assertSessionHasNoErrors();
+
+        $liquidation = Liquidation::query()->sole();
+
+        $this->assertSame('3180899.00', $liquidation->net_total);
+        $this->assertSame('prestacional', $liquidation->variant->value);
+    }
+
+    private function admin(): User
+    {
+        return User::factory()->create(['role' => 'administrator']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function excelContract(?User $creator = null, array $workerOverrides = []): Contract
+    {
+        $worker = Worker::factory()->create([
+            'document_type_id' => DocumentType::query()->where('code', 'CC')->value('id'),
+            ...$workerOverrides,
+        ]);
+
+        return Contract::factory()->create([
+            'worker_id' => $worker->id,
+            'company_id' => Company::factory()->create()->id,
+            'contract_type_id' => ContractType::query()->where('code', 'INDE')->value('id'),
+            'termination_reason_id' => TerminationReason::query()->where('code', 'DES-SJC')->value('id'),
+            'created_by' => ($creator ?? User::factory()->create())->id,
+            'start_date' => '2021-03-15',
+            'end_date' => '2024-06-30',
+            'base_salary_monthly' => '1750905.00',
+            'transport_auxiliary_monthly' => '249095.00',
+            'overtime_average_monthly' => '150000.00',
+            'status' => ContractStatus::Terminado,
+            'pending_vacation_days' => 15,
+            'pending_salary_days' => 15,
+        ]);
+    }
+
+    private function liquidationOf(Contract $contract): Liquidation
+    {
+        $this->actingAs($contract->creator)
+            ->post(route('liquidations.store', $contract), $this->payload());
+
+        return Liquidation::query()->with(['items', 'contract.worker', 'creator'])->latest('id')->sole();
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function payload(array $overrides = []): array
+    {
+        return array_merge([
+            'settlement_date' => '2024-06-30',
+            'variant' => 'con_indemnizacion',
+            'vacation_days' => 15,
+            'pending_salary_days' => 15,
+            'manual_values' => ['DESC_PRESTAMOS' => '0', 'DESC_OTRAS' => '0'],
+            'observations' => 'Liquidación de prueba según el Excel del cliente.',
+        ], $overrides);
+    }
+}

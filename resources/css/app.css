@@ -115,10 +115,19 @@
     --neu-dark: rgba(163, 177, 192, 0.55);
     --neu-light: rgba(255, 255, 255, 0.95);
     --neu-raised: 7px 7px 16px var(--neu-dark), -7px -7px 16px var(--neu-light);
-    --neu-raised-lg: 12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
-    --neu-sunken: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
-    --neu-pressed: inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
-    --gradient-taxi: linear-gradient(135deg, #ffd22a 0%, #ffc400 42%, #ff9a1e 100%);
+    --neu-raised-lg:
+        12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
+    --neu-sunken:
+        inset 5px 5px 10px var(--neu-dark),
+        inset -5px -5px 10px var(--neu-light);
+    --neu-pressed:
+        inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
+    --gradient-taxi: linear-gradient(
+        135deg,
+        #ffd22a 0%,
+        #ffc400 42%,
+        #ff9a1e 100%
+    );
 }
 
 .dark {
@@ -164,9 +173,13 @@
     --neu-dark: rgba(0, 0, 0, 0.62);
     --neu-light: rgba(255, 255, 255, 0.045);
     --neu-raised: 7px 7px 16px var(--neu-dark), -7px -7px 16px var(--neu-light);
-    --neu-raised-lg: 12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
-    --neu-sunken: inset 5px 5px 10px var(--neu-dark), inset -5px -5px 10px var(--neu-light);
-    --neu-pressed: inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
+    --neu-raised-lg:
+        12px 12px 28px var(--neu-dark), -10px -10px 24px var(--neu-light);
+    --neu-sunken:
+        inset 5px 5px 10px var(--neu-dark),
+        inset -5px -5px 10px var(--neu-light);
+    --neu-pressed:
+        inset 3px 3px 7px var(--neu-dark), inset -3px -3px 7px var(--neu-light);
 }
 
 @layer base {

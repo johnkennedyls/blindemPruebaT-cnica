@@ -12,12 +12,12 @@ documento exportable, al peso.
 
 ## Requisitos
 
-| Componente | Versión usada |
-|---|---|
-| PHP | 8.5 (el `composer.json` pide `^8.3`), con `bcmath` y `pdo_pgsql` activadas |
-| Composer | 2.x |
-| Node | 24 (con npm) |
-| PostgreSQL | 18.6 |
+| Componente | Versión usada                                                              |
+| ---------- | -------------------------------------------------------------------------- |
+| PHP        | 8.5 (el `composer.json` pide `^8.3`), con `bcmath` y `pdo_pgsql` activadas |
+| Composer   | 2.x                                                                        |
+| Node       | 24 (con npm)                                                               |
+| PostgreSQL | 18.6                                                                       |
 
 `bcmath` no es opcional: el motor de dinero llama funciones `bc*` para sumar y dividir montos sin
 enterarse de los errores del punto flotante.
@@ -96,10 +96,10 @@ Levanta el servidor de aplicación, `vite` para los assets y la cola. La aplicac
 
 ## Cuentas de prueba
 
-| Perfil | Correo | Contraseña |
-|---|---|---|
-| Administrador | `admin@blindem.test` | `password` |
-| Colaborador | `colaborador@blindem.test` | `password` |
+| Perfil        | Correo                     | Contraseña |
+| ------------- | -------------------------- | ---------- |
+| Administrador | `admin@blindem.test`       | `password` |
+| Colaborador   | `colaborador@blindem.test` | `password` |
 
 El colaborador registra trabajadores, empresas y contratos, consulta las liquidaciones y exporta. El
 administrador además edita las tablas paramétricas. El rol se guarda en la columna `role` de `users`

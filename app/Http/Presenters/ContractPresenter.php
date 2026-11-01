@@ -59,4 +59,37 @@ class ContractPresenter
                 ->all(),
         ];
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function form(Contract $contract): array
+    {
+        return [
+            'id' => $contract->id,
+            'code' => $contract->code,
+            'worker_id' => $contract->worker_id,
+            'worker_name' => $contract->worker->fullName(),
+            'company_id' => $contract->company_id,
+            'contract_type_id' => $contract->contract_type_id,
+            'position_id' => $contract->position_id,
+            'termination_reason_id' => $contract->termination_reason_id,
+            'creator' => $contract->creator?->name,
+            'dates' => [
+                'start' => $contract->start_date->toDateString(),
+                'end' => $contract->end_date?->toDateString(),
+                'scheduled_end' => $contract->scheduled_end_date?->toDateString(),
+                'salary_effective_from' => $contract->salary_effective_from?->toDateString(),
+            ],
+            'base_salary_monthly' => $contract->base_salary_monthly,
+            'transport_auxiliary_mode' => $contract->transport_auxiliary_mode->value,
+            'transport_auxiliary_monthly' => $contract->transport_auxiliary_monthly,
+            'overtime_average_monthly' => $contract->overtime_average_monthly,
+            'status' => $contract->status->value,
+            'pending_salary_days' => $contract->pending_salary_days,
+            'pending_vacation_days' => $contract->pending_vacation_days,
+            'notes' => $contract->notes,
+            'liquidations_count' => $contract->liquidations()->count(),
+        ];
+    }
 }

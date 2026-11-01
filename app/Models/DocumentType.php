@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class DocumentType extends Model
+class DocumentType extends Model implements ParametricCatalog
 {
     protected $fillable = [
         'code',
@@ -58,6 +58,11 @@ class DocumentType extends Model
         return $this->abbreviation
             ? "{$this->abbreviation} · {$this->name}"
             : $this->name;
+    }
+
+    public function detailLabel(): string
+    {
+        return $this->holder_type->label();
     }
 
     public function formatNumber(string $documentNumber): string

@@ -22,7 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class ContractType extends Model
+class ContractType extends Model implements ParametricCatalog
 {
     protected $fillable = [
         'code',
@@ -62,5 +62,18 @@ class ContractType extends Model
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function detailLabel(): string
+    {
+        $parts = [$this->modality->label()];
+
+        if ($this->statutory_max_months !== null) {
+            $parts[] = "Plazo máximo: {$this->statutory_max_months} meses";
+        }
+
+        $parts[] = $this->indemnization_rule?->label() ?? 'Regla indefinida';
+
+        return implode(' · ', $parts);
     }
 }

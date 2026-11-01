@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-class MinimumWage extends Model
+class MinimumWage extends Model implements ParametricCatalog
 {
     protected $fillable = [
         'year',
@@ -36,5 +36,10 @@ class MinimumWage extends Model
             'effective_from' => 'date',
             'effective_to' => 'date',
         ];
+    }
+
+    public function detailLabel(): string
+    {
+        return "SMLMV: {$this->smlmv} · Auxilio: {$this->transport_auxiliary}";
     }
 }

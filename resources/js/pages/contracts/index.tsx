@@ -109,7 +109,11 @@ export default function ContractsIndex({
                             }}
                         />
                     </div>
-                    <Button type="submit" size="sm" className="btn-taxi border-0">
+                    <Button
+                        type="submit"
+                        size="sm"
+                        className="btn-taxi border-0"
+                    >
                         Buscar
                     </Button>
                     {filters.q || filters.status || filters.company_id ? (
@@ -182,22 +186,14 @@ export default function ContractsIndex({
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="font-medium">
-                                                    {
-                                                        contract.worker
-                                                            .name
-                                                    }
+                                                    {contract.worker.name}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    {
-                                                        contract.worker
-                                                            .document
-                                                    }
+                                                    {contract.worker.document}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div>
-                                                    {contract.company}
-                                                </div>
+                                                <div>{contract.company}</div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {contract.position}
                                                 </div>
@@ -206,15 +202,12 @@ export default function ContractsIndex({
                                                 <div>
                                                     {day(contract.dates.start)}{' '}
                                                     →{' '}
-                                                    {day(
-                                                        contract.dates.end,
-                                                    ) ?? 'Abierto'}
+                                                    {day(contract.dates.end) ??
+                                                        'Abierto'}
                                                 </div>
                                             </td>
                                             <td className="tabular px-4 py-3 text-right">
-                                                {money(
-                                                    contract.salary.basic,
-                                                )}
+                                                {money(contract.salary.basic)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Badge
@@ -233,7 +226,7 @@ export default function ContractsIndex({
                                                     <Button
                                                         asChild
                                                         size="sm"
-                                                        className="mr-2 border-0 bg-blue-600 text-white hover:bg-blue-700"
+                                                        className="btn-taxi mr-2 border-0"
                                                     >
                                                         <Link
                                                             href={liquidate(
@@ -250,9 +243,7 @@ export default function ContractsIndex({
                                                     size="sm"
                                                 >
                                                     <Link
-                                                        href={edit(
-                                                            contract.id,
-                                                        )}
+                                                        href={edit(contract.id)}
                                                     >
                                                         Editar
                                                     </Link>
@@ -262,12 +253,15 @@ export default function ContractsIndex({
                                                     <div className="mt-1 text-xs text-muted-foreground">
                                                         <Link
                                                             href={showLiquidation(
-                                                                contract.liquidations[0].id,
+                                                                contract
+                                                                    .liquidations[0]
+                                                                    .id,
                                                             )}
                                                             className="underline"
                                                         >
                                                             {
-                                                                contract.liquidations[0]
+                                                                contract
+                                                                    .liquidations[0]
                                                                     .folio
                                                             }
                                                         </Link>
@@ -338,7 +332,7 @@ function ContractSummary({ contract }: { contract: ContractCard }) {
 
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <div>{day(contract.dates.start)}</div>
-                <div className="text-right tabular">
+                <div className="tabular text-right">
                     {money(contract.salary.basic)}
                 </div>
                 <div>
@@ -348,17 +342,17 @@ function ContractSummary({ contract }: { contract: ContractCard }) {
                         'liquidaciones',
                     )}
                 </div>
-                <div className="text-right">
-                    {contract.contract_type}
-                </div>
+                <div className="text-right">{contract.contract_type}</div>
             </dl>
 
             <div className="mt-4 flex flex-wrap gap-2">
                 {contract.can_liquidate ? (
-                    <Button asChild size="sm" className="flex-1 border-0 bg-blue-600 text-white hover:bg-blue-700">
-                        <Link href={liquidate(contract.id)}>
-                            Liquidar
-                        </Link>
+                    <Button
+                        asChild
+                        size="sm"
+                        className="btn-taxi flex-1 border-0"
+                    >
+                        <Link href={liquidate(contract.id)}>Liquidar</Link>
                     </Button>
                 ) : null}
                 <Button asChild variant="outline" size="sm" className="flex-1">

@@ -14,11 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { destroy, index, store, update } from '@/routes/contracts';
-import type {
-    ContractForm,
-    NumberedOption,
-    Option,
-} from '@/types';
+import type { ContractForm, NumberedOption, Option } from '@/types';
 
 type FormData = {
     code: string;
@@ -42,7 +38,6 @@ type FormData = {
 };
 
 const noReason = 'sin_causal';
-const noDate = 'sin_fecha';
 
 type Props = {
     contract: ContractForm | null;
@@ -69,9 +64,7 @@ export default function ContractForm({
 }: Props) {
     const route = contract ? update(contract.id) : store();
     const isClosed = contract
-        ? ['terminado', 'en_liquidacion', 'liquidado'].includes(
-              contract.status,
-          )
+        ? ['terminado', 'en_liquidacion', 'liquidado'].includes(contract.status)
         : false;
 
     const { data, setData, post, put, processing, errors } = useForm<FormData>({
@@ -81,9 +74,7 @@ export default function ContractForm({
         contract_type_id: String(
             contract?.contract_type_id ?? contractTypes[0]?.value ?? '',
         ),
-        position_id: String(
-            contract?.position_id ?? positions[0]?.value ?? '',
-        ),
+        position_id: String(contract?.position_id ?? positions[0]?.value ?? ''),
         termination_reason_id: contract?.termination_reason_id
             ? String(contract.termination_reason_id)
             : noReason,
@@ -92,9 +83,9 @@ export default function ContractForm({
         scheduled_end_date: contract?.dates.scheduled_end ?? '',
         salary_effective_from: contract?.dates.salary_effective_from ?? '',
         base_salary_monthly: contract?.base_salary_monthly ?? '',
-        transport_auxiliary_mode:
-            contract?.transport_auxiliary_mode ?? 'auto',
-        transport_auxiliary_monthly: contract?.transport_auxiliary_monthly ?? '',
+        transport_auxiliary_mode: contract?.transport_auxiliary_mode ?? 'auto',
+        transport_auxiliary_monthly:
+            contract?.transport_auxiliary_monthly ?? '',
         overtime_average_monthly: contract?.overtime_average_monthly ?? '',
         status: contract?.status ?? 'activo',
         pending_salary_days: String(contract?.pending_salary_days ?? 0),
@@ -204,7 +195,6 @@ export default function ContractForm({
                             value={data.end_date}
                             error={errors.end_date}
                             onChange={(value) => field('end_date', value)}
-                            emptyLabel={noDate}
                         />
                         <Entry
                             id="scheduled_end_date"
@@ -215,7 +205,6 @@ export default function ContractForm({
                             onChange={(value) =>
                                 field('scheduled_end_date', value)
                             }
-                            emptyLabel={noDate}
                             hint="Obligatoria en términos fijos y obras."
                         />
                         <Entry
@@ -227,7 +216,6 @@ export default function ContractForm({
                             onChange={(value) =>
                                 field('salary_effective_from', value)
                             }
-                            emptyLabel={noDate}
                         />
                         <Entry
                             id="base_salary_monthly"
@@ -328,13 +316,12 @@ export default function ContractForm({
                         <textarea
                             id="notes"
                             value={data.notes}
-                            onChange={(event) => field('notes', event.target.value)}
+                            onChange={(event) =>
+                                field('notes', event.target.value)
+                            }
                             className="mt-1 min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                         />
-                        <InputError
-                            message={errors.notes}
-                            className="mt-1"
-                        />
+                        <InputError message={errors.notes} className="mt-1" />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
@@ -415,7 +402,6 @@ function Entry({
     onChange,
     hint,
     type = 'text',
-    emptyLabel,
 }: {
     id: string;
     label: string;
@@ -424,7 +410,6 @@ function Entry({
     onChange: (value: string) => void;
     hint?: string;
     type?: string;
-    emptyLabel?: string;
 }) {
     return (
         <div>

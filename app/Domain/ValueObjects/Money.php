@@ -121,6 +121,10 @@ final class Money
 
     public function displayAmount(): string
     {
+        if (! str_contains($this->amount, '.')) {
+            return $this->amount;
+        }
+
         return rtrim(rtrim($this->amount, '0'), '.');
     }
 

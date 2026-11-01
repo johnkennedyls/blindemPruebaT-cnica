@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import {
+    BookOpen,
+    Calculator,
+    Folder,
+    LayoutGrid,
+    Menu,
+    Search,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -33,6 +40,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useInitials } from '@/hooks/use-initials';
 import { cn, toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { index as liquidations } from '@/routes/liquidations';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 type Props = {
@@ -45,17 +53,22 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Liquidaciones',
+        href: liquidations().url,
+        icon: Calculator,
+    },
 ];
 
 const rightNavItems: NavItem[] = [
     {
         title: 'Repositorio',
-        href: 'https://github.com/laravel/react-starter-kit',
+        href: 'https://github.com/johnkennedyls/blindemPruebaT-cnica',
         icon: Folder,
     },
     {
         title: 'Documentación',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: 'https://github.com/johnkennedyls/blindemPruebaT-cnica/blob/main/README.md',
         icon: BookOpen,
     },
 ];

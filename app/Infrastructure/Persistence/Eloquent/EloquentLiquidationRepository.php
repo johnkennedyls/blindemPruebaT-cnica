@@ -7,8 +7,10 @@ use App\Domain\Calculation\Dto\LiquidationLine;
 use App\Domain\Calculation\Dto\LiquidationResult;
 use App\Domain\Contracts\LiquidationRepository;
 use App\Domain\Enum\BaseKind;
+use App\Domain\Enum\ContractStatus;
 use App\Domain\Enum\LiquidationStatus;
 use App\Domain\ValueObjects\LiquidationReceipt;
+use App\Models\Contract;
 use App\Models\LegalParameter;
 use App\Models\Liquidation;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,15 +29,28 @@ class EloquentLiquidationRepository implements LiquidationRepository
         $header = $this->header($result, $context, $contractId, $userId, $observations);
         $header['folio'] = $this->nextFolio($context->draft->settlementDate);
 
-        return DB::transaction(function () use ($header, $result): LiquidationReceipt {
+        return DB::transaction(function () use ($header, $result, $contractId): LiquidationReceipt {
             $liquidation = Liquidation::create($header);
 
             foreach ($result->lines as $line) {
                 $liquidation->items()->create($this->item($line));
             }
 
+            $this->markContractAsLiquidating($contractId);
+
             return new LiquidationReceipt($liquidation->id, $liquidation->folio);
         });
+    }
+
+    private function markContractAsLiquidating(int $contractId): void
+    {
+        $contract = Contract::query()->findOrFail($contractId);
+
+        if ($contract->status === ContractStatus::Liquidado) {
+            return;
+        }
+
+        $contract->update(['status' => ContractStatus::EnLiquidacion]);
     }
 
     /**

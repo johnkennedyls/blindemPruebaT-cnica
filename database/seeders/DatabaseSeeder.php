@@ -35,5 +35,7 @@ class DatabaseSeeder extends Seeder
 
             $user->forceFill(['role' => $role->value, 'email_verified_at' => now()])->save();
         }
+
+        $this->call(DemoDataSeeder::class);
     }
 }

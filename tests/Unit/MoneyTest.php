@@ -124,6 +124,12 @@ class MoneyTest extends TestCase
         $this->assertSame('-249095', Money::of('-249095.00')->displayAmount());
     }
 
+    public function test_un_importe_ya_redondeado_con_cero_final_no_pierde_sus_cifras(): void
+    {
+        $this->assertSame('1000', Money::of('1000.4')->rounded()->displayAmount());
+        $this->assertSame('1300000', Money::of('1300000.00')->rounded()->displayAmount());
+    }
+
     public function test_la_fraccion_de_dias_indemnizables_se_muestra_hasta_la_escala_real(): void
     {
         $fraction = Money::of('109')->times('20')->dividedBy('365');

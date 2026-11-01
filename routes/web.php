@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\LiquidationController;
@@ -8,6 +9,9 @@ use App\Http\Controllers\WorkerController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
+
+Route::get('documentacion/api', [ApiDocsController::class, 'ui'])->name('api-docs.ui');
+Route::get('documentacion/api/spec.json', [ApiDocsController::class, 'spec'])->name('api-docs.spec');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');

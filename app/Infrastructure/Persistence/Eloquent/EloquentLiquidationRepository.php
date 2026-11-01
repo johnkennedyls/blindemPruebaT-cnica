@@ -128,6 +128,7 @@ class EloquentLiquidationRepository implements LiquidationRepository
     {
         $date = $context->draft->settlementDate;
         $days = $context->days;
+        $indemnizable = $context->strategy->days($context);
 
         return [
             'captured_at' => Date::now()->toIso8601String(),
@@ -162,7 +163,12 @@ class EloquentLiquidationRepository implements LiquidationRepository
             'indemnizacion' => [
                 'regla' => $context->strategy->rule()->value,
                 'formula' => $context->strategy->formulaText($context),
-                'detalle' => $context->strategy->days($context)->detail,
+                'detalle' => $indemnizable->detail,
+                'dias' => [
+                    'primer_ano' => $indemnizable->firstYear->exactAmount(),
+                    'anios_siguientes' => $indemnizable->followingYears->exactAmount(),
+                    'fraccion' => $indemnizable->fraction->exactAmount(),
+                ],
             ],
             'avisos' => $result->notices,
         ];

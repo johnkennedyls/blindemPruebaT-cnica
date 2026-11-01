@@ -10,6 +10,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('liquidaciones', [LiquidationController::class, 'index'])->name('liquidations.index');
     Route::get('liquidaciones/{liquidation}', [LiquidationController::class, 'show'])->name('liquidations.show');
+    Route::get('liquidaciones/{liquidation}/excel', [LiquidationController::class, 'excel'])->name('liquidations.excel');
 
     Route::get('contratos/{contract}/liquidar', [LiquidationController::class, 'create'])->name('liquidations.create');
     Route::post('contratos/{contract}/liquidar', [LiquidationController::class, 'store'])->name('liquidations.store');

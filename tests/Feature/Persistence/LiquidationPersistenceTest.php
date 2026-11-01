@@ -140,6 +140,7 @@ class LiquidationPersistenceTest extends TestCase
         $this->assertSame(3, $snapshot['antiguedad']['anos_completos']);
         $this->assertSame(109, $snapshot['antiguedad']['fraccion']);
         $this->assertSame('art64_lt_a', $snapshot['indemnizacion']['regla']);
+        $this->assertSame('30.000000000000', $snapshot['indemnizacion']['dias']['primer_ano']);
         $this->assertStringContainsString('109/365', $snapshot['indemnizacion']['detalle']);
     }
 

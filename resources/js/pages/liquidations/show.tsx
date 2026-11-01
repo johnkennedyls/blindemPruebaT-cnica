@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
+import { FileSpreadsheet } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { count, day, money, quantity } from '@/lib/format';
-import { index } from '@/routes/liquidations';
+import { excel, index } from '@/routes/liquidations';
 import type { ContractCard, LiquidationDocument } from '@/types/liquidations';
 
 type Props = {
@@ -23,6 +24,12 @@ export default function LiquidationShow({ liquidation, contract }: Props) {
                         description={`${liquidation.variant.label} · calculada por ${liquidation.creator ?? 'el sistema'}`}
                     />
                     <div className="flex gap-2">
+                        <Button asChild size="sm" className="btn-taxi border-0">
+                            <a href={excel.url(liquidation.id)} download>
+                                <FileSpreadsheet />
+                                Excel
+                            </a>
+                        </Button>
                         <Button
                             variant="outline"
                             size="sm"

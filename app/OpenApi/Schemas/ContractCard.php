@@ -30,6 +30,7 @@ use OpenApi\Attributes as OA;
             type: 'object',
         ),
         new OA\Property(property: 'company', type: 'string', example: 'Blindem S.A.S.'),
+        new OA\Property(property: 'company_nit', type: 'string', example: '900123456-7'),
         new OA\Property(property: 'position', type: 'string', nullable: true, example: 'Analista Operativo'),
         new OA\Property(property: 'contract_type', type: 'string', nullable: true, example: 'Indefinido'),
         new OA\Property(property: 'modality', type: 'string', nullable: true, example: 'Indefinido'),

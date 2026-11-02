@@ -29,6 +29,7 @@ class ContractPresenter
                 'email' => $worker->email,
             ],
             'company' => $contract->company->business_name,
+            'company_nit' => $contract->company->nit,
             'position' => $contract->position?->name,
             'contract_type' => $type?->name,
             'modality' => $type?->modality->label(),

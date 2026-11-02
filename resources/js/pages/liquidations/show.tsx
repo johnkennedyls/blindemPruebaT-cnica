@@ -7,12 +7,26 @@ import { count, day, money, quantity } from '@/lib/format';
 import { excel, index } from '@/routes/liquidations';
 import type { ContractCard, LiquidationDocument } from '@/types';
 
+type GuideSection = {
+    title: string;
+    detail: string;
+};
+
 type Props = {
     liquidation: LiquidationDocument;
     contract: ContractCard;
+    guide: {
+        steps: GuideSection[];
+        rules: GuideSection[];
+        formulas: { concept: string; formula: string }[];
+    };
 };
 
-export default function LiquidationShow({ liquidation, contract }: Props) {
+export default function LiquidationShow({
+    liquidation,
+    contract,
+    guide,
+}: Props) {
     return (
         <>
             <Head title={`Liquidación ${liquidation.folio}`} />
@@ -262,6 +276,38 @@ export default function LiquidationShow({ liquidation, contract }: Props) {
                                 : ''}
                         </span>
                     </footer>
+
+                    <section className="space-y-6 border-t border-border/60 pt-6">
+                        <h3 className="text-xs tracking-wide text-muted-foreground uppercase">
+                            Declaración y firmas de conformidad
+                        </h3>
+                        <p className="text-sm leading-relaxed">
+                            Hago constar que he recibido a entera satisfacción
+                            el valor total de la presente liquidación de
+                            prestaciones sociales, salarios e indemnización (si
+                            aplica), quedando la empresa a paz y salvo por todo
+                            concepto derivado de la relación laboral.
+                        </p>
+                        <div className="grid gap-12 pt-10 pb-4 text-center sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <p className="border-t border-foreground/60 pt-2 text-sm">
+                                    Firma del trabajador
+                                </p>
+                                <p className="tabular text-xs text-muted-foreground">
+                                    {contract.worker.document}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="border-t border-foreground/60 pt-2 text-sm">
+                                    Empleador / representante legal
+                                </p>
+                                <p className="tabular text-xs text-muted-foreground">
+                                    NIT {contract.company_nit} ·{' '}
+                                    {contract.company}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
                 </article>
 
                 <details className="neu-card p-5 text-sm print:hidden">
@@ -283,6 +329,27 @@ export default function LiquidationShow({ liquidation, contract }: Props) {
                             ),
                         )}
                     </dl>
+                </details>
+
+                <details className="neu-card space-y-3 p-5 text-sm print:hidden">
+                    <summary className="cursor-pointer font-medium">
+                        Guía de uso y normativa del cálculo (art. 64 C.S.T.)
+                    </summary>
+                    <div className="space-y-1">
+                        {guide.rules.map((rule) => (
+                            <p key={rule.title}>
+                                <strong>{rule.title}.</strong> {rule.detail}
+                            </p>
+                        ))}
+                    </div>
+                    <ul className="space-y-1">
+                        {guide.formulas.map((formula) => (
+                            <li key={formula.concept}>
+                                <strong>{formula.concept}:</strong>{' '}
+                                {formula.formula}
+                            </li>
+                        ))}
+                    </ul>
                 </details>
             </div>
         </>

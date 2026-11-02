@@ -3,6 +3,7 @@
 namespace App\Infrastructure\Export;
 
 use App\Domain\Enum\LiquidationVariant;
+use App\Http\Presenters\LiquidationGuidePresenter;
 use App\Models\Liquidation;
 use App\Models\LiquidationItem;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -167,7 +168,57 @@ class LiquidationWorkbookExporter
 
         $this->signatures($sheet, $row, $worker->document_number, $contract->company->nit);
 
+        $this->guideSheet($book);
+
         return $book;
+    }
+
+    private function guideSheet(Spreadsheet $book): void
+    {
+        $sheet = $book->createSheet();
+        $sheet->setTitle('Instrucciones y Normativa');
+        $sheet->getColumnDimension('A')->setWidth(48);
+        $sheet->getColumnDimension('B')->setWidth(110);
+
+        $this->banner($sheet, 'A1', 'GUÍA DE USO E INSTRUCCIONES DE CÁLCULO', true);
+
+        $guide = LiquidationGuidePresenter::sections();
+        $row = 3;
+
+        $row = $this->section($sheet, $row, '1. PASOS PARA DILIGENCIAR LA LIQUIDACIÓN');
+
+        foreach ($guide['steps'] as $step) {
+            $this->label($sheet, 'A'.$row, $step['title']);
+            $this->guideDetail($sheet, $row, $step['detail']);
+            $row++;
+        }
+
+        $row++;
+        $row = $this->section($sheet, $row, '2. REGLAS DE CÁLCULO DE INDEMNIZACIÓN (ART. 64 C.S.T. - COLOMBIA)');
+
+        foreach ($guide['rules'] as $rule) {
+            $this->label($sheet, 'A'.$row, $rule['title']);
+            $this->guideDetail($sheet, $row, $rule['detail']);
+            $row++;
+        }
+
+        $row++;
+        $row = $this->section($sheet, $row, '3. FÓRMULAS USADAS EN LAS PRESTACIONES SOCIALES');
+
+        foreach ($guide['formulas'] as $formula) {
+            $this->label($sheet, 'A'.$row, $formula['concept']);
+            $this->guideDetail($sheet, $row, 'Fórmula: '.$formula['formula']);
+            $row++;
+        }
+
+        $book->setActiveSheetIndex(0);
+    }
+
+    private function guideDetail(Worksheet $sheet, int $row, string $text): void
+    {
+        $sheet->setCellValue('B'.$row, $text);
+        $sheet->getStyle('B'.$row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+        $sheet->getRowDimension($row)->setRowHeight(32);
     }
 
     private function heading(Worksheet $sheet, bool $withIndemnization): int

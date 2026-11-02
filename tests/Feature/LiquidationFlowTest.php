@@ -22,6 +22,7 @@ use Database\Seeders\TerminationReasonSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Tests\TestCase;
 
@@ -315,6 +316,49 @@ class LiquidationFlowTest extends TestCase
         $this->assertSame(3180899.0, (float) $sheet->getCell('E'.$this->rowOf($sheet, 'NETO TOTAL A RECIBIR (A - B)'))->getCalculatedValue());
     }
 
+    public function test_la_vista_previa_devuelve_el_desglose_sin_guardar_nada(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->postJson(route('liquidations.preview', $contract), $this->payload())
+            ->assertOk()
+            ->assertJsonPath('totals.earned', '7688130')
+            ->assertJsonPath('totals.deducted', '73204')
+            ->assertJsonPath('totals.net', '7614926')
+            ->assertJsonPath('indemnization_rule', 'Art. 64 lit. a (30 + 20 días)')
+            ->assertJsonCount(11, 'lines');
+
+        $this->assertSame(0, Liquidation::query()->count());
+    }
+
+    public function test_la_vista_previa_rechaza_datos_fuera_de_rango(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->postJson(route('liquidations.preview', $contract), $this->payload(['vacation_days' => 900]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('vacation_days');
+    }
+
+    public function test_el_excel_incluye_la_hoja_de_instrucciones_y_normativa(): void
+    {
+        $user = $this->admin();
+        $liquidation = $this->liquidationOf($this->excelContract($user));
+
+        $book = $this->exportedBook($liquidation, $user);
+        $guide = $book->getSheetByName('Instrucciones y Normativa');
+
+        $this->assertNotNull($guide);
+        $this->assertSame('GUÍA DE USO E INSTRUCCIONES DE CÁLCULO', $guide->getCell('A1')->getValue());
+        $this->assertStringContainsString('ART. 64 C.S.T.', (string) $guide->getCell('A10')->getValue());
+        $this->assertStringContainsString('30 días de salario', (string) $guide->getCell('B11')->getValue());
+        $this->assertStringContainsString('/ 360', (string) $guide->getCell('B16')->getValue());
+    }
+
     public function test_un_tercero_no_descarga_el_excel_de_otra_liquidacion(): void
     {
         $owner = $this->admin();
@@ -338,6 +382,15 @@ class LiquidationFlowTest extends TestCase
         $response->assertDownload($liquidation->folio.'.xlsx');
 
         return IOFactory::load($response->getFile()->getPathname())->getActiveSheet();
+    }
+
+    private function exportedBook(Liquidation $liquidation, User $user): Spreadsheet
+    {
+        $response = $this->actingAs($user)->get(route('liquidations.excel', $liquidation));
+
+        $response->assertOk();
+
+        return IOFactory::load($response->getFile()->getPathname());
     }
 
     private function rowOf(Worksheet $sheet, string $label): int

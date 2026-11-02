@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Application\LiquidationDraftMapper;
+use App\Domain\Calculation\Dto\LiquidationLine;
 use App\Domain\Calculation\LiquidationEngine;
 use App\Domain\Contracts\ConceptCatalogRepository;
 use App\Domain\Contracts\LiquidationRepository;
@@ -13,6 +14,7 @@ use App\Domain\Enum\HolderType;
 use App\Domain\Enum\LiquidationVariant;
 use App\Domain\ValueObjects\ConceptDefinition;
 use App\Http\Presenters\ContractPresenter;
+use App\Http\Presenters\LiquidationGuidePresenter;
 use App\Http\Presenters\LiquidationPresenter;
 use App\Http\Requests\StoreLiquidationRequest;
 use App\Infrastructure\Auditing\ActivityLogger;
@@ -22,6 +24,7 @@ use App\Models\DocumentType;
 use App\Models\Liquidation;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -97,6 +100,7 @@ class LiquidationController extends Controller
                 LiquidationVariant::cases(),
             ),
             'suggestedVariant' => $this->mapper->suggestsVariant($contract)->value,
+            'guide' => LiquidationGuidePresenter::sections(),
             'manualConcepts' => array_values(array_map(
                 fn (ConceptDefinition $concept): array => [
                     'code' => $concept->code,
@@ -108,6 +112,43 @@ class LiquidationController extends Controller
                     fn (ConceptDefinition $concept): bool => $concept->baseKind === BaseKind::Manual,
                 ),
             )),
+        ]);
+    }
+
+    public function preview(StoreLiquidationRequest $request, Contract $contract): JsonResponse
+    {
+        $result = $this->engine->calculate($this->mapper->fromContract(
+            contract: $contract,
+            settlementDate: $request->settlementDate(),
+            variant: $request->variant(),
+            vacationDays: $request->vacationDays(),
+            pendingSalaryDays: $request->pendingSalaryDays(),
+            manualValues: $request->manualValues(),
+            cesantiasDays: $request->cesantiasDays(),
+            primaDays: $request->primaDays(),
+        ));
+
+        return response()->json([
+            'lines' => array_map(
+                fn (LiquidationLine $line): array => [
+                    'code' => $line->concept->code,
+                    'name' => $line->concept->name,
+                    'side' => $line->concept->side->value,
+                    'base' => $line->base->amount(),
+                    'quantity' => $line->quantity,
+                    'divisor' => $line->divisor,
+                    'formula' => $line->formulaText,
+                    'amount' => $line->amount->amount(),
+                ],
+                $result->lines,
+            ),
+            'totals' => [
+                'earned' => $result->earned->amount(),
+                'deducted' => $result->deducted->amount(),
+                'net' => $result->net->amount(),
+            ],
+            'notices' => $result->notices,
+            'indemnization_rule' => $result->context->strategy->rule()->label(),
         ]);
     }
 
@@ -163,6 +204,7 @@ class LiquidationController extends Controller
         return Inertia::render('liquidations/show', [
             'liquidation' => LiquidationPresenter::document($liquidation),
             'contract' => ContractPresenter::card($liquidation->contract),
+            'guide' => LiquidationGuidePresenter::sections(),
         ]);
     }
 

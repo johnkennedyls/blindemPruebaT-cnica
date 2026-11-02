@@ -14,6 +14,7 @@ export type ContractCard = {
         email: string | null;
     };
     company: string;
+    company_nit: string;
     position: string | null;
     contract_type: string | null;
     modality: string | null;

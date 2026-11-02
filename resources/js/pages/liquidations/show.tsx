@@ -276,6 +276,38 @@ export default function LiquidationShow({
                                 : ''}
                         </span>
                     </footer>
+
+                    <section className="space-y-6 border-t border-border/60 pt-6">
+                        <h3 className="text-xs tracking-wide text-muted-foreground uppercase">
+                            Declaración y firmas de conformidad
+                        </h3>
+                        <p className="text-sm leading-relaxed">
+                            Hago constar que he recibido a entera satisfacción
+                            el valor total de la presente liquidación de
+                            prestaciones sociales, salarios e indemnización (si
+                            aplica), quedando la empresa a paz y salvo por todo
+                            concepto derivado de la relación laboral.
+                        </p>
+                        <div className="grid gap-12 pt-10 pb-4 text-center sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <p className="border-t border-foreground/60 pt-2 text-sm">
+                                    Firma del trabajador
+                                </p>
+                                <p className="tabular text-xs text-muted-foreground">
+                                    {contract.worker.document}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="border-t border-foreground/60 pt-2 text-sm">
+                                    Empleador / representante legal
+                                </p>
+                                <p className="tabular text-xs text-muted-foreground">
+                                    NIT {contract.company_nit} ·{' '}
+                                    {contract.company}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
                 </article>
 
                 <details className="neu-card p-5 text-sm print:hidden">

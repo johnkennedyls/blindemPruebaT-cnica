@@ -27,6 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('contratos/{contract}/liquidar', [LiquidationController::class, 'create'])->name('liquidations.create');
     Route::post('contratos/{contract}/liquidar', [LiquidationController::class, 'store'])->name('liquidations.store');
+    Route::post('contratos/{contract}/liquidar/vista-previa', [LiquidationController::class, 'preview'])->name('liquidations.preview');
 
     Route::get('contratos', [ContractController::class, 'index'])->name('contracts.index');
     Route::get('contratos/crear', [ContractController::class, 'create'])->name('contracts.create');

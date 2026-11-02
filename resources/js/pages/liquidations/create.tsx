@@ -1,18 +1,47 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { day, money } from '@/lib/format';
-import { index, show, store } from '@/routes/liquidations';
+import { day, money, quantity } from '@/lib/format';
+import { index, preview, show, store } from '@/routes/liquidations';
 import type { ContractCard, Option } from '@/types';
 
 type ManualConcept = {
     code: string;
     name: string;
     side: string;
+};
+
+type GuideSection = {
+    title: string;
+    detail: string;
+};
+
+type GuideFormula = {
+    concept: string;
+    formula: string;
+};
+
+type PreviewLine = {
+    code: string;
+    name: string;
+    side: 'earning' | 'deduction';
+    base: string;
+    quantity: string;
+    divisor: number | null;
+    formula: string;
+    amount: string;
+};
+
+type PreviewData = {
+    lines: PreviewLine[];
+    totals: { earned: string; deducted: string; net: string };
+    notices: string[];
+    indemnization_rule: string;
 };
 
 type FormData = {
@@ -31,6 +60,11 @@ type Props = {
     variants: Option[];
     suggestedVariant: string;
     manualConcepts: ManualConcept[];
+    guide: {
+        steps: GuideSection[];
+        rules: GuideSection[];
+        formulas: GuideFormula[];
+    };
 };
 
 export default function LiquidationCreate({
@@ -38,6 +72,7 @@ export default function LiquidationCreate({
     variants,
     suggestedVariant,
     manualConcepts,
+    guide,
 }: Props) {
     const { data, setData, post, processing, errors } = useForm<FormData>({
         settlement_date: contract.dates.end ?? contract.dates.start,
@@ -52,8 +87,60 @@ export default function LiquidationCreate({
         observations: '',
     });
 
+    const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => {
+            const cookie = document.cookie
+                .split('; ')
+                .find((entry) => entry.startsWith('XSRF-TOKEN='));
+            const token = cookie
+                ? decodeURIComponent(cookie.slice('XSRF-TOKEN='.length))
+                : '';
+
+            fetch(preview(contract.id).url, {
+                method: 'POST',
+                signal: controller.signal,
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': token,
+                },
+                body: JSON.stringify(data),
+            })
+                .then(async (response) => {
+                    if (!response.ok) {
+                        setPreviewData(null);
+                        setPreviewError(
+                            'La vista previa no se pudo calcular con estos datos.',
+                        );
+                        return;
+                    }
+
+                    setPreviewData((await response.json()) as PreviewData);
+                    setPreviewError(null);
+                })
+                .catch(() => undefined);
+        }, 350);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [data, contract.id]);
+
     const field = (key: keyof FormData, value: string) =>
         setData((current) => ({ ...current, [key]: value }));
+
+    const earnings = (previewData?.lines ?? []).filter(
+        (line) => line.side === 'earning',
+    );
+    const deductions = (previewData?.lines ?? []).filter(
+        (line) => line.side === 'deduction',
+    );
 
     return (
         <>
@@ -215,6 +302,12 @@ export default function LiquidationCreate({
                                         ))}
                                     </select>
                                     <InputError message={errors.variant} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Terminación de contrato, renuncia o
+                                        justa causa: formato prestacional.
+                                        Despido sin justa causa: formato con
+                                        indemnización del artículo 64.
+                                    </p>
                                 </div>
                             </div>
 
@@ -307,6 +400,84 @@ export default function LiquidationCreate({
                             </div>
                         </section>
 
+                        <section className="neu-card space-y-4 p-5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h2 className="font-semibold">
+                                    Desglose calculado en vivo
+                                </h2>
+                                {previewData ? (
+                                    <Badge variant="secondary">
+                                        {previewData.indemnization_rule}
+                                    </Badge>
+                                ) : null}
+                            </div>
+
+                            {previewError ? (
+                                <p className="text-sm text-destructive">
+                                    {previewError}
+                                </p>
+                            ) : null}
+
+                            {previewData ? (
+                                <>
+                                    <PreviewTable
+                                        title="3. Prestaciones y conceptos"
+                                        lines={earnings}
+                                    />
+                                    <PreviewTable
+                                        title="4. Deducciones y descuentos"
+                                        lines={deductions}
+                                    />
+
+                                    <dl className="tabular space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">
+                                                Total devengado (A)
+                                            </dt>
+                                            <dd>
+                                                {money(
+                                                    previewData.totals.earned,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <dt className="text-muted-foreground">
+                                                Total deducciones (B)
+                                            </dt>
+                                            <dd>
+                                                {money(
+                                                    previewData.totals.deducted,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div className="flex justify-between border-t border-black/5 pt-1 font-semibold">
+                                            <dt>Neto a recibir (A - B)</dt>
+                                            <dd>
+                                                {money(previewData.totals.net)}
+                                            </dd>
+                                        </div>
+                                    </dl>
+
+                                    {previewData.notices.length > 0 ? (
+                                        <ul className="space-y-1 text-xs text-muted-foreground">
+                                            {previewData.notices.map(
+                                                (notice) => (
+                                                    <li key={notice}>
+                                                        · {notice}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    Calculando la vista previa con los datos
+                                    digitados…
+                                </p>
+                            )}
+                        </section>
+
                         <section className="neu-card space-y-3 p-5">
                             <Label htmlFor="observations">
                                 Observaciones del documento
@@ -360,8 +531,117 @@ export default function LiquidationCreate({
                         ) : null}
                     </div>
                 </form>
+
+                <details className="neu-card space-y-4 p-5">
+                    <summary className="cursor-pointer font-semibold">
+                        Guía de uso y normativa del cálculo (art. 64 C.S.T.)
+                    </summary>
+
+                    <GuideBlock
+                        title="1. Pasos para diligenciar la liquidación"
+                        entries={guide.steps}
+                    />
+                    <GuideBlock
+                        title="2. Reglas de cálculo de la indemnización"
+                        entries={guide.rules}
+                    />
+
+                    <div className="space-y-2">
+                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                            3. Fórmulas usadas en las prestaciones sociales
+                        </p>
+                        <ul className="space-y-1 text-sm">
+                            {guide.formulas.map((formula) => (
+                                <li key={formula.concept}>
+                                    <strong>{formula.concept}:</strong>{' '}
+                                    {formula.formula}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </details>
             </div>
         </>
+    );
+}
+
+function GuideBlock({
+    title,
+    entries,
+}: {
+    title: string;
+    entries: GuideSection[];
+}) {
+    return (
+        <div className="space-y-2">
+            <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                {title}
+            </p>
+            <ul className="space-y-1 text-sm">
+                {entries.map((entry) => (
+                    <li key={entry.title}>
+                        <strong>{entry.title}.</strong> {entry.detail}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+function PreviewTable({
+    title,
+    lines,
+}: {
+    title: string;
+    lines: PreviewLine[];
+}) {
+    return (
+        <div className="space-y-2">
+            <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                {title}
+            </p>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="text-left text-xs text-muted-foreground">
+                            <th className="py-1 pr-3 font-medium">Concepto</th>
+                            <th className="py-1 pr-3 text-right font-medium">
+                                Base
+                            </th>
+                            <th className="py-1 pr-3 text-right font-medium">
+                                Días
+                            </th>
+                            <th className="py-1 pr-3 font-medium">Fórmula</th>
+                            <th className="py-1 text-right font-medium">
+                                Valor
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="tabular">
+                        {lines.map((line) => (
+                            <tr
+                                key={line.code}
+                                className="border-t border-black/5"
+                            >
+                                <td className="py-1 pr-3">{line.name}</td>
+                                <td className="py-1 pr-3 text-right">
+                                    {money(line.base)}
+                                </td>
+                                <td className="py-1 pr-3 text-right">
+                                    {quantity(line.quantity)}
+                                </td>
+                                <td className="py-1 pr-3 text-xs text-muted-foreground">
+                                    {line.formula}
+                                </td>
+                                <td className="py-1 text-right font-medium">
+                                    {money(line.amount)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     );
 }
 

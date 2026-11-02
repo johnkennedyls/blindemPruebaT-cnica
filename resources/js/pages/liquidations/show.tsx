@@ -7,12 +7,26 @@ import { count, day, money, quantity } from '@/lib/format';
 import { excel, index } from '@/routes/liquidations';
 import type { ContractCard, LiquidationDocument } from '@/types';
 
+type GuideSection = {
+    title: string;
+    detail: string;
+};
+
 type Props = {
     liquidation: LiquidationDocument;
     contract: ContractCard;
+    guide: {
+        steps: GuideSection[];
+        rules: GuideSection[];
+        formulas: { concept: string; formula: string }[];
+    };
 };
 
-export default function LiquidationShow({ liquidation, contract }: Props) {
+export default function LiquidationShow({
+    liquidation,
+    contract,
+    guide,
+}: Props) {
     return (
         <>
             <Head title={`Liquidación ${liquidation.folio}`} />
@@ -283,6 +297,27 @@ export default function LiquidationShow({ liquidation, contract }: Props) {
                             ),
                         )}
                     </dl>
+                </details>
+
+                <details className="neu-card space-y-3 p-5 text-sm print:hidden">
+                    <summary className="cursor-pointer font-medium">
+                        Guía de uso y normativa del cálculo (art. 64 C.S.T.)
+                    </summary>
+                    <div className="space-y-1">
+                        {guide.rules.map((rule) => (
+                            <p key={rule.title}>
+                                <strong>{rule.title}.</strong> {rule.detail}
+                            </p>
+                        ))}
+                    </div>
+                    <ul className="space-y-1">
+                        {guide.formulas.map((formula) => (
+                            <li key={formula.concept}>
+                                <strong>{formula.concept}:</strong>{' '}
+                                {formula.formula}
+                            </li>
+                        ))}
+                    </ul>
                 </details>
             </div>
         </>

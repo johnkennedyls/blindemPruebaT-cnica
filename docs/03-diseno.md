@@ -16,7 +16,7 @@
 | Frontend        | **React 19 con TypeScript**, montado sobre **Inertia 3**                     | Es el entorno que se domina, y con Inertia no hace falta escribir una API: el controlador Laravel sigue existiendo, solo que en vez de devolver una vista devuelve datos y la página React los pinta.                                                      |
 | CSS             | **Tailwind CSS 4.1** + una capa propia en `resources/css/app.css`            | El kit ya trae Tailwind. Los tokens de color y las sombras neomorfas viven en un solo archivo, y los ~40 componentes del kit los heredan sin tocarlos.                                                                                                     |
 | Componentes     | **shadcn/ui** (Radix + `lucide-react`), los que trae el kit                  | Radix ya implementa ARIA, navegación por teclado y gestión de foco. Eso es accesibilidad real, no la que se escribe a mano y se olvida.                                                                                                                    |
-| Base de datos   | **PostgreSQL 18.6** (servicio local) · **pgAdmin** para revisarla            | Motor relacional completo y único para desarrollo y pruebas: claves foráneas reales, `CHECK`, `EXCLUDE` con GiST, `jsonb` e índices parciales. El enunciado lo permite explícitamente y evita el "depende del motor".                                      |
+| Base de datos   | **PostgreSQL 18.6** (servicio local) · **pgAdmin** para revisarla            | Motor relacional completo y único para desarrollo y pruebas: claves foráneas reales, `CHECK`, `jsonb`, un índice GIN con `pg_trgm` y un índice único sobre una expresión. El enunciado lo permite explícitamente y evita el "depende del motor".           |
 | Autenticación   | La del starter kit (React) + passkeys                                        | Login, registro, verificación, 2FA y perfil ya hechos y probados. Reescribirlos a mano no aporta nada a esta prueba.                                                                                                                                       |
 | Autorización    | Campo `role` + **Policies** + middleware                                     | Dos roles no justifican un paquete de permisos.                                                                                                                                                                                                            |
 | Excel           | **`phpoffice/phpspreadsheet`** usado en directo                              | El formato del cliente es una hoja fija de cinco columnas: un envoltorio tipo `maatwebsite/excel` añade una capa de abstracción que no ahorra nada, y las pruebas necesitan abrir el archivo que sale para comparar celda por celda (§9).                  |
@@ -129,8 +129,8 @@ reconstruye `blindem_test` en cada corrida; si apuntara a `blindem`, cada `php a
 destruiría los contratos de demostración que se usan para grabar el video.
 
 **Rol dedicado, no `postgres`.** El usuario de la aplicación es dueño de sus dos bases, por lo que puede
-instalar las extensiones que necesitan las migraciones (`btree_gist`, `pg_trgm`: ambas están marcadas
-`trusted` en su `.control`, así que no se necesita superusuario) y no tiene permisos de superusuario si
+instalar la extensión que necesita la migración de trabajadores (`pg_trgm`, marcada `trusted` en su
+`.control`, así que no se necesita superusuario) y no tiene permisos de superusuario si
 algún día se filtra la contraseña del `.env`.
 
 ### 2.4 Reglas al escribir migraciones sobre Postgres
@@ -145,12 +145,14 @@ Postgres se comporta distinto de lo que la documentación de Laravel asume por d
 | Los `CHECK` se agregan con `DB::statement("ALTER TABLE ... ADD CONSTRAINT ck_... CHECK (...)")` en un `foreach` justo después del `Schema::create` | El constructor de esquemas de Laravel 13.39 **no tiene verbo `check()`**: llamar `$table->check(...)` lanza `Error: Call to undefined method Blueprint::check()` al correr `php artisan migrate`, no al escribir el archivo. La restricción igual vive en la migración, con nombre propio (`ck_c_status`), para que el error de Postgres diga cuál se violó. `pg_dump` las imprime dentro del `CREATE TABLE`, así que en el apéndice §5.4 se ven inline aunque la migración las agregue por separado. |
 | `$table->unique([...], 'nombre')` e `$table->index([...], 'nombre')` con nombre explícito                                                          | En Postgres se cumplen de verdad y el esquema depende de ellos, no de una validación de formulario que se puede saltar por otra ruta. Nombrarlos es lo que permite que el error devuelva `uq_worker_doc` en vez de un `contracts_worker_id_fkey` generado a mano por la base.                                                                                                                                                                                                                         |
 | `->decimal(14, 2)` y nada de `float`                                                                                                               | Postgres guarda `NUMERIC` exacto. Un `double precision` redondea el dinero en binario y es exactamente el error que las pruebas del Excel buscan.                                                                                                                                                                                                                                                                                                                                                     |
-| `DB::statement()` para `EXCLUDE`, GIN y índices sobre expresiones                                                                                  | El constructor de esquemas no tiene verbos para ellas.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `DB::statement()` para el GIN, el índice sobre `lower(email)` y el `DROP CONSTRAINT`                                                               | El constructor de esquemas no tiene verbos para ellas.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `whereDate()` en los rangos de vigencia                                                                                                            | Eloquent guarda la fecha como `'2021-01-01 00:00:00'`; comparar con `where()` deja fuera el primer día de vigencia, que es el día en que el SMLMV ya cambió.                                                                                                                                                                                                                                                                                                                                          |
 
 Cada migración con SQL crudo arranca con `if (DB::connection()->getDriverName() !== 'pgsql') return;`. No es
 para soportar otro motor: es para que `php artisan migrate` en una máquina con otra base no reviente a la
-mitad del esquema, dejando tablas creadas y la constraint `EXCLUDE` sin aplicar.
+mitad del esquema, dejando tablas creadas y datos a medias. La migración que quita la restricción de
+solapamiento es un ejemplo: sin la guarda, ese `ALTER TABLE ... DROP CONSTRAINT` sería un error en un motor
+que nunca tuvo la constraint.
 
 ---
 
@@ -858,9 +860,8 @@ migraciones). El `ENUM` de MySQL tampoco: son `VARCHAR` + `CHECK`, y el tipo lo 
 
 ```sql
 -- ============ 0. EXTENSIONES ============
--- btree_gist permite mezclar = y && en el mismo EXCLUDE; pg_trgm da el índice de texto parcial.
--- Ambas son "trusted": el dueño de la base las instala sin ser superusuario.
-CREATE EXTENSION IF NOT EXISTS btree_gist;
+-- pg_trgm da el índice de texto parcial con que se busca un trabajador por fragmento de nombre.
+-- Es "trusted": el dueño de la base la instala sin ser superusuario.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ============ 1. CATÁLOGOS ============
@@ -1065,17 +1066,9 @@ CREATE INDEX ix_contract_company_status ON contracts (company_id, status);
 CREATE INDEX ix_contract_end ON contracts (end_date);
 CREATE INDEX ix_contract_creator ON contracts (created_by);
 
--- La restricción que MySQL y SQLite no permiten: un trabajador no puede tener dos
--- contratos activos que se toquen en el tiempo. Es un índice de exclusión con GiST,
--- WHERE (deleted_at IS NULL) para que un contrato borrado lógicamente no estorbe.
--- 'infinity'::date cierra el rango de los contratos que siguen vigentes.
-ALTER TABLE contracts
-  ADD CONSTRAINT ex_contract_no_overlap
-  EXCLUDE USING gist (
-    worker_id WITH =,
-    daterange(start_date, COALESCE(end_date, 'infinity'::date), '[]') WITH &&
-  )
-  WHERE (deleted_at IS NULL);
+-- Un trabajador sí puede tener dos contratos vigentes en el mismo rango de fechas (doble
+-- afiliación real), así que aquí no hay restricción de solapamiento: las fechas de un
+-- contrato no limitan las de otro y la convivencia la decide el usuario al registrarla.
 
 -- ============ 3. RESULTADO ============
 CREATE TABLE liquidations (
@@ -1692,6 +1685,50 @@ da otro número, y la diferencia no es de centavos.
 > **Test discriminador** (ponlo en la suite, es el que detecta el error):
 > `assertSame(124548, $aux->compute($ctx)->amount->centavos / 100)`. Si alguien mueve el `/30` de lugar, este test lo atrapa.
 
+### 8.4 El patrón estrategia, declarado y buscado en el repo
+
+El patrón estrategia es, en una línea: **una familia de algoritmos que son intercambiables porque prometen la
+misma firma**. Se define un contrato pequeño, cada variante se escribe en su propia clase que cumple ese
+contrato, y un único punto decide cuál usar. El que ejecuta no sabe cuántas variantes existen: llama la firma
+y ya. El nombre viene de que se puede cambiar la forma de calcular en tiempo de ejecución sin tocar a quien
+llama, igual que se cambia de estrategia a mitad del partido.
+
+En este proyecto hay tres implementaciones, y no una:
+
+| Contrato                          | Variantes                                                                                                                                  | Quién elige                            | Con qué criterio                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `ConceptCalculator`               | Nueve clases en `app/Domain/Calculation/Calculators/`, diez instancias registradas (salud y pensión comparten clase)                       | `LiquidationEngine::calculatorFor()`   | La columna `formula_key` de la fila activa de `concept_catalogs`; si no hay calculadora, el renglón se salta con un aviso |
+| `IndemnizationStrategy`           | `SinIndemnizacion`, `ProportionalByYears` (abstracta) con dos hijas, `TerminoFijoPlazoRestante`                                            | `IndemnizationStrategyFactory::make()` | Motivo de retiro primero, modalidad después, umbral de 10 SMLMV al final (§8.2)                                           |
+| `ParametricDefinition` (registro) | Cinco definiciones declaradas en `ParametricRegistry`: tipos de documento, cargos, tipos de contrato, motivos de retiro y salarios mínimos | `ParametricRegistry::resolve($slug)`   | El slug de la URL `{resource}`                                                                                            |
+
+Las dos primeras son estrategia en su forma clásica: interfaz en `app/Domain/Calculation/Contracts/`,
+implementaciones en subcarpetas, y la elección concentrada en un método. La tercera es la misma idea un piso
+más arriba, en la capa HTTP: aquí la "variante" no es una clase sino una **declaración de datos** (campos,
+reglas, columna única, relación de uso, etiqueta del borrado), y lo que se intercambia es la pantalla.
+`ParametricController` y `ParametricRequest` no conocen ninguna de las cinco tablas: preguntan al registro por
+la definición y actúan según lo que responde. Las cinco definiciones son cinco métodos privados dentro del
+mismo `ParametricRegistry`, y de ahí sale todo lo demás: el menú lateral se arma con `ParametricRegistry::all()`
+compartido por `HandleInertiaRequests`, así que agregar un catálogo nuevo es escribir una definición y listarla
+en ese arreglo —una entrada, no un controlador ni una ruta nueva—. Ese es el beneficio del patrón aplicado a
+CRUD: el código de `app/Http` se escribió una vez en lugar de cinco.
+
+Qué se gana y qué se paga, para que la respuesta no suene a folleto:
+
+- **Se gana** que un cambio legal toque un archivo. Si el literal `a` del Art. 64 pasa de 30 días a 32, cambia
+  una fila de `legal_parameters`; si se crea un motivo de retiro nuevo con sanción del 65, cambia una constante
+  del enum y una rama de la fábrica. Nadie abre `LiquidationEngine`.
+- **Se gana** que el "no hacer nada" tenga nombre: `SinIndemnizacion` es una clase, no un
+  `if ($rule === null)` suelto en el motor, así que el caso sin indemnización se prueba igual que los demás
+  (`tests/Unit/Calculation/IndemnizacionEstrategiasTest`).
+- **Se paga** en saltos. Leer el monto de la prima exige abrir el catálogo, luego el motor, luego
+  `PrimaCalculator`; son tres archivos donde antes habría habido un `switch`. Por eso este documento existe:
+  el mapa de a quién se le pregunta está acá, y la convención de nombrar la clave (`key()` en las calculadoras,
+  el `slug` en las definiciones) es lo suficientemente aburrida como para buscarse por texto.
+- **Se paga** con la tentación de abusar. No todo merece una estrategia: `Company`, `Worker` y `Contract`
+  tienen formularios y reglas propias, y están escritos como tres CRUD normales. La regla práctica que se usó
+  es que el patrón entra cuando hay **un mismo algoritmo con variantes que cambian por normativa**, y se queda
+  fuera cuando lo que cambia es la forma de la pantalla.
+
 ---
 
 ## 9. Exportar a Excel (requisito explícito del enunciado)
@@ -1768,17 +1805,16 @@ public function after(): array
 {
     return [
         function (Validator $validator): void {
-            if ($validator->errors()->hasAny(['worker_id', 'start_date', 'end_date'])) {
+            if ($validator->errors()->hasAny(['contract_type_id', 'start_date', 'scheduled_end_date'])) {
                 return;
             }
 
-            if ($this->overlapsAnotherContract()) {
-                $validator->errors()->add('start_date',
-                    'El trabajador ya tiene un contrato que cubre ese periodo. '
-                    . 'Un trabajador no puede tener dos contratos solapados.');
+            $message = $this->statutoryTermMessage();
+
+            if ($message !== null) {
+                $validator->errors()->add('scheduled_end_date', $message);
             }
         },
-        // el segundo cierre valida el plazo máximo legal del tipo de contrato
     ];
 }
 ```
@@ -1789,11 +1825,13 @@ Cuatro cosas de este archivo que valen la pena mirar de cerca:
   `contract_types.requires_scheduled_end`; si mañana se registra un tipo nuevo con esa bandera, el formulario
   lo exige sin tocar una línea. Lo mismo con `isClosed()`, que deriva de `ContractStatus` y hace que
   `end_date` y `termination_reason_id` se pidan juntos.
-- **`after()` es para las reglas que necesitan consultar.** `overlapsAnotherContract()` busca otros contratos del
-  mismo trabajador cuyas fechas se crucen con el periodo que se está guardando; es un `where` sobre dos columnas, no
-  algo que quepa en una cadena de reglas. La base refuerza lo mismo con el `EXCLUDE USING gist` de
-  `ck_contract_no_overlap`, así que la validación de Laravel es la barrera amable y el índice la que no se salta ni
-  por `php artisan tinker`.
+- **`after()` es para las reglas que necesitan consultar.** `statutoryTermMessage()` toma el tipo de contrato
+  elegido, lee su `statutory_max_months` y mide si la fecha de terminación prevista se pasa de ese plazo contado
+  desde la fecha de ingreso; es una comparación entre dos campos del propio envío, no algo que quepa en una cadena
+  de reglas. Antes había un segundo cierre que rechazaba que un trabajador tuviera dos contratos con fechas
+  cruzadas: se quitó, porque en la vida real un mismo trabajador sí puede estar afiliado a dos empresas al mismo
+  tiempo, y la base tampoco lo impide desde que se eliminó el `EXCLUDE USING gist` (ver la migración
+  `2026_11_02_090000_drop_contract_overlap_restriction.php`).
 - **Hay reglas que son closures con negocio adentro.** `companyRule()` limita al perfil Colaborador a las empresas
   de su tabla `user_company`, y `statusRule()` bloquea dos cosas que suenan inofensivas: poner un contrato en
   estado `Liquidado` a mano (eso lo fija el sistema al guardar la liquidación) y devolver a `Activo` un contrato
@@ -1838,10 +1876,18 @@ del mínimo de su época se liquida igual, porque la aritmética no debe corregi
 | `end_date >= start_date`                                                             | Imposible físicamente.                                                                                                              |
 | `scheduled_end_date` obligatorio si el catálogo lo exige                             | Sin ese dato no se calcula el término fijo (error #6 del Excel).                                                                    |
 | `(tipo + número de documento)` único en `workers`                                    | Sería dos personas distintas con el mismo documento.                                                                                |
-| Fechas de contrato no solapadas para un mismo trabajador                             | Duplicidad real de relación laboral; lo frena `after()` y también el `EXCLUDE` de la base.                                          |
 | `scheduled_end_date` dentro del plazo máximo legal del tipo (`statutory_max_months`) | Un término fijo que pasa del límite legal no es término fijo: se convierte en indefinido y la liquidación que sale de ahí está mal. |
 | El estado `Liquidado` no se asigna a mano                                            | Lo fija `EloquentLiquidationRepository` al guardar; si alguien lo escribe antes, el contrato desaparece de la cola de liquidación.  |
 | El Colaborador solo registra contratos de las empresas de `user_company`             | autorización, no formato: un id de empresa ajena es un dato válido que no le pertenece.                                             |
+
+Lo que deliberadamente **no** está en esta lista: dos contratos del mismo trabajador que se solapen en el tiempo.
+Un trabajador puede estar contratado por dos empresas a la vez, y en Colombia ocurre (medio tiempo en dos
+jornadas, un contrato terminable y otro indefinido coexistiendo). Cada contrato se liquida por separado, con su
+propia fecha de ingreso, su propio salario y su propio SMLMV, así que permitir el solapamiento no rompe ninguna
+cuenta; lo que rompería las cuentas sería promedizar los dos contratos como si fueran uno solo, y el motor nunca
+lo hace. En la pantalla queda a la vista: el listado de trabajadores muestra cuántos contratos tiene cada persona
+(`contracts_count`) y el buscador del listado de contratos también encuentra por el nombre del trabajador, así que
+se puede ver los dos registros conviviendo sin que nadie los prohiba.
 
 ---
 
@@ -1908,7 +1954,8 @@ Lo que cubren las demás:
 - `tests/Feature/ContractRegistryTest.php`, `WorkerRegistryTest.php`, `CompanyRegistryTest.php`,
   `ParametricRegistryTest.php`, `DashboardTest.php`, `RootRouteTest.php` y `ApiDocsTest.php`.
 - `tests/Feature/Auth/*` y `tests/Feature/Settings/*`: lo que trae el kit, que también se rompe si se toca mal.
-- `tests/Feature/DatabaseIntegrityTest.php`: dos contratos solapados del mismo trabajador, un salario en cero,
+- `tests/Feature/DatabaseIntegrityTest.php`: dos contratos vigentes del mismo trabajador en el mismo rango
+  (que ahora sí se aceptan), un salario en cero,
   un rango de fechas invertido, un `nit` vacío, un documento duplicado, una llave foránea inexistente y dos
   correos que solo difieren en mayúsculas. Ninguna pasa.
 
@@ -1968,19 +2015,19 @@ en vivo, no mostrando un dato pre-cargado.
 
 ## 13. Seguridad
 
-| Riesgo                                 | Cómo queda cubierto                                                                                                                                                                 |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SQL injection                          | Solo Eloquent / `query builder` con bindings. El `DB::statement` de las migraciones no recibe nunca entrada del usuario: son cadenas literales de DDL.                              |
-| XSS                                    | React escapa por defecto al interpolar, y Blade con `{{ }}`. `{!! !!}` no se usa con datos del usuario en ninguna de las dos.                                                       |
-| CSRF                                   | El `@csrf` de Blade y el interceptor de Inertia en cada POST/PUT/DELETE.                                                                                                            |
-| Acceso a datos ajenos                  | `Policies` + `user_company`, no solo ocultar el menú.                                                                                                                               |
-| Robo de sesión                         | `SESSION_DRIVER=database`, `http_only`, logout por POST.                                                                                                                            |
-| Fuerza bruta                           | `throttle:5,1` en la ruta de login.                                                                                                                                                 |
-| Subida de archivos (logo empresa)      | Validar `mimes:jpg,png                                                                                                                                                              | max:2048`, guardar en `storage` no público. |
-| Secretos en el repo                    | `.gitignore` con `.env`; `.env.example` con `DB_PASSWORD=` vacío.                                                                                                                   |
-| Borrar un documento legal              | Soft delete en `contracts` y anulación en `liquidations`; nunca borrado físico.                                                                                                     |
-| Borra rutas destructivas en producción | `DB::prohibitDestructiveCommands(app()->isProduction())` en `AppServiceProvider::boot()`, que ya está escrito: bloquea `migrate:fresh` y `truncate` si `APP_ENV=production`.        |
-| Contraseña de la base filtrada         | El rol `blindem` no es superusuario y solo es dueño de `blindem` y `blindem_test`; `pg_hba.conf` exige `scram-sha-256`. Si se filtra el `.env`, el daño se limita a esas dos bases. |
+| Riesgo                                 | Cómo queda cubierto                                                                                                                                                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SQL injection                          | Solo Eloquent / `query builder` con bindings. El `DB::statement` de las migraciones no recibe nunca entrada del usuario: son cadenas literales de DDL.                                                                 |
+| XSS                                    | React escapa por defecto al interpolar, y Blade con `{{ }}`. `{!! !!}` no se usa con datos del usuario en ninguna de las dos.                                                                                          |
+| CSRF                                   | El `@csrf` de Blade y el interceptor de Inertia en cada POST/PUT/DELETE.                                                                                                                                               |
+| Acceso a datos ajenos                  | `Policies` + `user_company`, no solo ocultar el menú.                                                                                                                                                                  |
+| Robo de sesión                         | `SESSION_DRIVER=database`, `http_only`, logout por POST.                                                                                                                                                               |
+| Fuerza bruta                           | `throttle:5,1` en la ruta de login.                                                                                                                                                                                    |
+| Subida de archivos                     | No hay ninguna: la aplicación solo recibe texto, fechas y montos, así que no existe superficie de subida. Si algún día se añade el logo de la empresa, la regla sería `mimes:jpg,png\|max:2048` sobre un disk privado. |
+| Secretos en el repo                    | `.gitignore` con `.env`; `.env.example` con `DB_PASSWORD=` vacío.                                                                                                                                                      |
+| Borrar un documento legal              | Soft delete en `contracts` y anulación en `liquidations`; nunca borrado físico.                                                                                                                                        |
+| Borra rutas destructivas en producción | `DB::prohibitDestructiveCommands(app()->isProduction())` en `AppServiceProvider::boot()`, que ya está escrito: bloquea `migrate:fresh` y `truncate` si `APP_ENV=production`.                                           |
+| Contraseña de la base filtrada         | El rol `blindem` no es superusuario y solo es dueño de `blindem` y `blindem_test`; `pg_hba.conf` exige `scram-sha-256`. Si se filtra el `.env`, el daño se limita a esas dos bases.                                    |
 
 ---
 
@@ -2020,15 +2067,15 @@ verifica las dos cosas: el `7614926` en el JSON y `Liquidation::count() === 0`.
 > **Calendario verificado:** 4 de noviembre de 2026 es **miércoles** (entrega, 10:00 a.m.) y la
 > **sustentación es el jueves 5/11 desde las 8:00 a.m.** Quedan sábado, domingo, lunes y martes.
 
-| Día                   | Estado              | Bloque                                                                                                                                                                                                                                 | Resultado verificable                                                                                                                                            |
-| --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **sáb 31/10**         | ✔ hecho             | Análisis del Excel · entorno: un solo PHP (8.5 de Herd), Composer de Herd, Node 24 · proyecto con starter kit React · tokens y neumorfismo                                                                                             | `php artisan --version` responde; `npm run build` compila sin errores; el login del kit sale con el tema aplicado                                                |
-| **sáb 31/10 (resto)** | ✔ hecho             | capas `Domain`/`Infrastructure` con sus puertos y adaptadores · los 17 modelos con sus 16 enums · las 18 migraciones propias (23 con las del kit) aplicadas sobre **PostgreSQL 18.6**: rol `blindem`, bases `blindem` y `blindem_test` | `db:show` dice `blindem / PostgreSQL 18.6 / 26 tablas`; el catálogo confirma **46 `CHECK`**, `ex_contract_no_overlap`, `ix_worker_name_trgm` y las 2 extensiones |
-| **dom 01/11**         | ✔ hecho             | `app/Domain/Calculation` completo: `WorkedDaysCalculator`, `SalaryBaseBuilder`, `Parameters`, las 9 calculadoras, las 5 clases de indemnización y `LiquidationEngine`                                                                  | Los dos golden tests del Excel en verde: `3.180.899` y `7.614.926` al peso                                                                                       |
-| **lun 02/11**         | ✔ hecho             | CRUD de `workers`, `companies`, `contracts` con filtros · pantalla de liquidación · guardar con folio · políticas y middleware de rol                                                                                                  | Se liquidan los 2 casos del Excel desde el navegador; el colaborador recibe 403 en paramétricas y al crear empresas o trabajadores                               |
-| **mar 03/11**         | ✔ hecho             | **Exportar Excel** de dos hojas · vista de impresión con firmas · panel con agregados reales · raíz que redirige · auditoría · README y los tres documentos de `docs/` · Swagger                                                       | Alcance mínimo completo de punta a punta; **255 pruebas, 1153 aserciones**, PHPStan nivel 7 en cero                                                              |
-| **mié 04/11**         | pendiente de grabar | 07:00 prueba final con los datos del cliente · 08:30 grabar el video (5-8 min) · 09:15 verificar el repositorio público y la etiqueta · **10:00 enviar el correo**                                                                     | ENTREGADO                                                                                                                                                        |
-| **jue 05/11 08:00**   | —                   | Sustentación: mapa del dominio, los 12 números verificados, las desviaciones del Excel y las cinco estrategias                                                                                                                         | —                                                                                                                                                                |
+| Día                   | Estado              | Bloque                                                                                                                                                                                                                                 | Resultado verificable                                                                                                                              |
+| --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **sáb 31/10**         | ✔ hecho             | Análisis del Excel · entorno: un solo PHP (8.5 de Herd), Composer de Herd, Node 24 · proyecto con starter kit React · tokens y neumorfismo                                                                                             | `php artisan --version` responde; `npm run build` compila sin errores; el login del kit sale con el tema aplicado                                  |
+| **sáb 31/10 (resto)** | ✔ hecho             | capas `Domain`/`Infrastructure` con sus puertos y adaptadores · los 17 modelos con sus 16 enums · las 18 migraciones propias (23 con las del kit) aplicadas sobre **PostgreSQL 18.6**: rol `blindem`, bases `blindem` y `blindem_test` | `db:show` dice `blindem / PostgreSQL 18.6 / 26 tablas`; el catálogo confirma **46 `CHECK`**, `ix_worker_name_trgm` y la extensión de texto parcial |
+| **dom 01/11**         | ✔ hecho             | `app/Domain/Calculation` completo: `WorkedDaysCalculator`, `SalaryBaseBuilder`, `Parameters`, las 9 calculadoras, las 5 clases de indemnización y `LiquidationEngine`                                                                  | Los dos golden tests del Excel en verde: `3.180.899` y `7.614.926` al peso                                                                         |
+| **lun 02/11**         | ✔ hecho             | CRUD de `workers`, `companies`, `contracts` con filtros · pantalla de liquidación · guardar con folio · políticas y middleware de rol                                                                                                  | Se liquidan los 2 casos del Excel desde el navegador; el colaborador recibe 403 en paramétricas y al crear empresas o trabajadores                 |
+| **mar 03/11**         | ✔ hecho             | **Exportar Excel** de dos hojas · vista de impresión con firmas · panel con agregados reales · raíz que redirige · auditoría · README y los tres documentos de `docs/` · Swagger                                                       | Alcance mínimo completo de punta a punta; **255 pruebas, 1153 aserciones**, PHPStan nivel 7 en cero                                                |
+| **mié 04/11**         | pendiente de grabar | 07:00 prueba final con los datos del cliente · 08:30 grabar el video (5-8 min) · 09:15 verificar el repositorio público y la etiqueta · **10:00 enviar el correo**                                                                     | ENTREGADO                                                                                                                                          |
+| **jue 05/11 08:00**   | —                   | Sustentación: mapa del dominio, los 12 números verificados, las desviaciones del Excel y las cinco estrategias                                                                                                                         | —                                                                                                                                                  |
 
 **Regla de supervivencia que se aplicó:** cuando quedó poco tiempo, lo que se dejó fuera fue el PDF descargable y la
 pantalla de bitácora, no la aritmética. El evaluador perdona que falte un botón; no perdona que la
@@ -2084,3 +2131,20 @@ wayfinder:generate`—, así que en el repo no hay archivos generados.
 → comparar en pantalla contra el Excel → exportar Excel y abrirlo → mostrar tests en verde → 30 s de
 arquitectura. Cierra con la frase: _"se detectaron 10 inconsistencias en el Excel y se resolvieron estas 4;
 las otras quedaron documentadas"_. Eso es lo que separa del resto de aspirantes.
+
+---
+
+## 17. Deudas conocidas, declaradas
+
+Cuatro cosas quedan a medio camino. No son descuidos: cada una tiene su razón, una línea que la cierra y un
+costo si se cerrara en la última semana del entregable.
+
+| Deuda                                    | Estado real                                                                                                                                                                                                      | Cómo se cierra                                                                                                                | Por qué sigue abierta                                                                                                                                                                                                                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sanción del Art. 65                      | La columna `applies_sanction_art65` de `termination_reasons` existe, se edita en el CRUD de motivos de retiro y sale en la etiqueta del motivo, pero el motor no la lee: no hay renglón de mora en el documento. | Un calculador más en `app/Domain/Calculation/Calculators`, dos claves en `legal_parameters` y una fila en `concept_catalogs`. | El Excel del cliente no tiene ese renglón. Calcular una tasa que la especificación no pide sería pelearse con lo que se entregó como referencia; está declarado fuera de alcance en `docs/01` §11.                                                                                             |
+| Auto-registro abierto                    | `config/fortify.php` conserva `Features::registration()`, así que `/register` crea cuentas con rol `collaborator` y correo sin verificar.                                                                        | Quitar esa línea del arreglo de `features`.                                                                                   | Es la comodidad del entorno de demostración: permite enseñar el `403` del colaborador sin preparar una segunda cuenta. El riesgo está acotado —el registro jamás asigna `admin`, porque el rol sale del default del modelo `User` y no del formulario— y un panel real lo cierra en un commit. |
+| Dos catálogos fuera del CRUD paramétrico | Las cinco pantallas con CRUD son tipos de documento, cargos, tipos de contrato, motivos de retiro y salarios mínimos. `concept_catalogs` y `legal_parameters` se editan por seeder y por migración.              | Dos `ParametricDefinition` más dentro de `ParametricRegistry`; el controlador no cambiaría nada.                              | Son insumos del motor, no catálogos operativos: una fila mal editada (un divisor en cero, unos días negativos) cambia el resultado de todas las liquidaciones futuras. Que un usuario los cambie sin revisión no es un beneficio, es un riesgo de cálculo.                                     |
+| Bitácora sin pantalla                    | `activity_logs` se escribe en cada alta, edición, borrado y liquidación de los cinco módulos, y `contracts.created_by` queda registrado.                                                                         | Una ruta `admin` con su listado filtrable por usuario y por acción.                                                           | La bitácora no estaba en el enunciado. Se dejó el dato, que es lo caro de recuperar después, y no la vista, que es barata de añadir encima.                                                                                                                                                    |
+
+La forma de comprobar que ninguna de las cuatro rompe el contrato con el cliente es la hoja de verificación
+de `docs/04` §7: cada fila firma lo que el sistema hace, no lo que falta.

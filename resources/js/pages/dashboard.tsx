@@ -1,5 +1,12 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Building2, Calculator, FileSpreadsheet, Users } from 'lucide-react';
+import {
+    Building2,
+    Calculator,
+    Check,
+    FileSpreadsheet,
+    Lock,
+    Users,
+} from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,8 +54,53 @@ const cards = (summary: Summary) => [
     },
 ];
 
+type Capability = {
+    label: string;
+    allowed: boolean;
+};
+
+const sharedCapabilities: Capability[] = [
+    {
+        label: 'Consultar contratos y el historial de los afiliados de sus empresas',
+        allowed: true,
+    },
+    {
+        label: 'Crear, editar y eliminar contratos de esas empresas',
+        allowed: true,
+    },
+    {
+        label: 'Filtrar por estado, tipo de documento y número de documento',
+        allowed: true,
+    },
+    {
+        label: 'Calcular, guardar, imprimir y exportar a Excel cada liquidación',
+        allowed: true,
+    },
+];
+
+const collaboratorLimits: Capability[] = [
+    { label: 'Registrar, editar o eliminar trabajadores', allowed: false },
+    { label: 'Registrar, editar o eliminar empresas', allowed: false },
+    { label: 'Modificar las tablas paramétricas', allowed: false },
+];
+
+const adminExtras: Capability[] = [
+    {
+        label: 'CRUD completo sobre trabajadores y empresas de toda la base',
+        allowed: true,
+    },
+    {
+        label: 'CRUD completo sobre los cinco catálogos paramétricos',
+        allowed: true,
+    },
+];
+
 export default function Dashboard({ summary, pending }: Props) {
-    const user = usePage().props.auth.user;
+    const {
+        user,
+        is_admin: isAdmin,
+        role_label: roleLabel,
+    } = usePage().props.auth;
 
     return (
         <>
@@ -59,6 +111,48 @@ export default function Dashboard({ summary, pending }: Props) {
                     title={`Hola, ${user.name.split(' ')[0]}`}
                     description="Resumen de los contratos que puede ver en Blindem. Desde aquí se entra a la calculadora de liquidaciones."
                 />
+
+                <section className="neu-card p-5">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h2 className="text-base font-medium">
+                            Permisos de su cuenta
+                        </h2>
+                        <Badge variant={isAdmin ? 'default' : 'secondary'}>
+                            {roleLabel}
+                        </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        {isAdmin
+                            ? 'El administrador ve toda la base y mantiene las tablas que alimentan el cálculo.'
+                            : 'El colaborador trabaja sobre los contratos de las empresas en las que está registrado; el resto de la información es de solo lectura.'}
+                    </p>
+                    <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                        {[
+                            ...sharedCapabilities,
+                            ...(isAdmin ? adminExtras : collaboratorLimits),
+                        ].map((capability) => (
+                            <li
+                                key={capability.label}
+                                className="flex items-start gap-2"
+                            >
+                                {capability.allowed ? (
+                                    <Check className="mt-0.5 size-4 shrink-0 text-taxi" />
+                                ) : (
+                                    <Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                                )}
+                                <span
+                                    className={
+                                        capability.allowed
+                                            ? ''
+                                            : 'text-muted-foreground'
+                                    }
+                                >
+                                    {capability.label}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {cards(summary).map((card) => (

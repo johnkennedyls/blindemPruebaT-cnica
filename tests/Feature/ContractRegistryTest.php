@@ -75,6 +75,34 @@ class ContractRegistryTest extends TestCase
             );
     }
 
+    public function test_el_estado_liquidado_se_filtra_pero_no_se_asigna_a_mano(): void
+    {
+        $liquidated = $this->contract(['status' => 'liquidado']);
+
+        $this->actingAs($this->admin())
+            ->get(route('contracts.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('statuses', 4)
+                ->where('statuses.3.value', 'liquidado'),
+            );
+
+        $this->actingAs($this->admin())
+            ->get(route('contracts.index', ['status' => 'liquidado']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('contracts.total', 1)
+                ->where('contracts.data.0.id', $liquidated->id)
+                ->where('filters.status', 'liquidado'),
+            );
+
+        $this->actingAs($this->admin())
+            ->get(route('contracts.create'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('contracts/form')
+                ->has('statuses', 3)
+                ->where('statuses.2.value', 'en_liquidacion'),
+            );
+    }
+
     public function test_el_colaborador_puede_registrar_un_contrato_en_su_empresa(): void
     {
         $collaborator = User::factory()->create(['role' => 'collaborator']);
@@ -110,16 +138,19 @@ class ContractRegistryTest extends TestCase
             ]);
     }
 
-    public function test_el_contrato_solapado_se_rechaza(): void
+    public function test_un_trabajador_puede_tener_dos_contratos_vigentes_en_el_mismo_rango(): void
     {
         $existing = $this->contract();
 
         $this->actingAs($this->admin())
             ->post(route('contracts.store'), $this->payload([
                 'worker_id' => $existing->worker_id,
+                'company_id' => $existing->company_id,
                 'start_date' => '2026-03-01',
             ]))
-            ->assertSessionHasErrors(['start_date' => 'El trabajador ya tiene un contrato que cubre ese periodo. Un trabajador no puede tener dos contratos solapados.']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, Contract::query()->where('worker_id', $existing->worker_id)->count());
     }
 
     public function test_un_contrato_cerrado_exige_fecha_de_retiro_y_causal(): void

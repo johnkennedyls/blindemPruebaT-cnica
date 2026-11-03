@@ -20,7 +20,7 @@ class ContractPolicy
 
     public function view(User $user, Contract $contract): bool
     {
-        return $user->role->isAdmin()
+        return $user->isAdmin()
             || $contract->created_by === $user->id
             || $user->companies()->whereKey($contract->company_id)->exists();
     }

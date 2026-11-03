@@ -18,11 +18,6 @@ use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * Admin CRUD for every parametric catalog. The rows and form fields
- * are declared in App\Http\Parametrics\ParametricRegistry, so the
- * controller stays generic and adding a catalog does not add code.
- */
 class ParametricController extends Controller
 {
     use AuthorizesRequests;
@@ -155,10 +150,6 @@ class ParametricController extends Controller
         return to_route('parametrics.index', ['resource' => $definition->slug]);
     }
 
-    /**
-     * Validation depends on the definition, so the payload is merged
-     * manually instead of mass assigning raw validated data.
-     */
     private function fromRequest(ParametricDefinition $definition, ParametricRequest $request, ?Model $record = null): Model
     {
         $model = $definition->model;

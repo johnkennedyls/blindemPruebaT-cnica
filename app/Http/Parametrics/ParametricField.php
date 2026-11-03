@@ -2,11 +2,6 @@
 
 namespace App\Http\Parametrics;
 
-/**
- * A single editable column of a parametric catalog, declared by
- * ParametricDefinition and consumed by ParametricController and
- * the shared Inertia form builder.
- */
 final class ParametricField
 {
     /**

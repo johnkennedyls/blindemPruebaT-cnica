@@ -80,6 +80,25 @@ class Worker extends Model
      * @param  Builder<Worker>  $query
      * @return Builder<Worker>
      */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'contracts',
+            fn (Builder $contracts): Builder => $contracts->whereIn(
+                'company_id',
+                $user->companies()->select('companies.id'),
+            ),
+        );
+    }
+
+    /**
+     * @param  Builder<Worker>  $query
+     * @return Builder<Worker>
+     */
     public function scopeByDocument(Builder $query, string $number, ?int $documentTypeId = null): Builder
     {
         $query->where('document_number', trim($number));

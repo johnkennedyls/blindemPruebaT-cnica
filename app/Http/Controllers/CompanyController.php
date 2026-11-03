@@ -7,6 +7,7 @@ use App\Http\Presenters\CompanyPresenter;
 use App\Http\Requests\CompanyRequest;
 use App\Infrastructure\Auditing\ActivityLogger;
 use App\Models\Company;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -24,8 +25,14 @@ class CompanyController extends Controller
     {
         $term = trim((string) $request->query('q'));
 
+        /**
+         * @var User
+         */
+        $user = $request->user();
+
         $companies = Company::query()
             ->withCount('contracts')
+            ->visibleTo($user)
             ->when($term !== '', fn (Builder $query) => $query->named($term))
             ->orderBy('business_name')
             ->paginate(12)

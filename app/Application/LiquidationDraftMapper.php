@@ -24,6 +24,7 @@ final class LiquidationDraftMapper
         array $manualValues = [],
         ?int $cesantiasDays = null,
         ?int $primaDays = null,
+        ?string $startDate = null,
     ): LiquidationDraft {
         $type = $contract->contractType;
 
@@ -33,7 +34,7 @@ final class LiquidationDraftMapper
 
         return new LiquidationDraft(
             variant: $variant,
-            startDate: $contract->start_date->toDateString(),
+            startDate: $startDate ?? $contract->start_date->toDateString(),
             settlementDate: $settlementDate,
             baseSalary: Money::of($contract->base_salary_monthly),
             transportAuxiliary: Money::of($contract->transport_auxiliary_monthly),

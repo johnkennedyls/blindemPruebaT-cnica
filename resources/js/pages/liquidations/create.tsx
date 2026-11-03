@@ -45,6 +45,7 @@ type PreviewData = {
 };
 
 type FormData = {
+    start_date: string;
     settlement_date: string;
     variant: string;
     cesantias_days: string;
@@ -75,6 +76,7 @@ export default function LiquidationCreate({
     guide,
 }: Props) {
     const { data, setData, post, processing, errors } = useForm<FormData>({
+        start_date: contract.dates.start,
         settlement_date: contract.dates.end ?? contract.dates.start,
         variant: suggestedVariant,
         cesantias_days: '',
@@ -113,9 +115,19 @@ export default function LiquidationCreate({
             })
                 .then(async (response) => {
                     if (!response.ok) {
+                        const body = (await response
+                            .json()
+                            .catch(() => null)) as {
+                            message?: string;
+                            errors?: Record<string, string[]>;
+                        } | null;
+
                         setPreviewData(null);
                         setPreviewError(
-                            'La vista previa no se pudo calcular con estos datos.',
+                            body?.errors?.settlement_date?.[0] ??
+                                body?.errors?.start_date?.[0] ??
+                                body?.message ??
+                                'La vista previa no se pudo calcular con estos datos.',
                         );
                         return;
                     }
@@ -141,6 +153,10 @@ export default function LiquidationCreate({
     const deductions = (previewData?.lines ?? []).filter(
         (line) => line.side === 'deduction',
     );
+    const datesDiffer =
+        data.start_date !== contract.dates.start ||
+        (contract.dates.end !== null &&
+            data.settlement_date !== contract.dates.end);
 
     return (
         <>
@@ -262,6 +278,25 @@ export default function LiquidationCreate({
 
                             <div className="grid gap-5 sm:grid-cols-2">
                                 <div className="grid gap-2">
+                                    <Label htmlFor="start_date">
+                                        Fecha de ingreso
+                                    </Label>
+                                    <Input
+                                        id="start_date"
+                                        type="date"
+                                        className="neu-sunken h-10 rounded-xl border-0"
+                                        value={data.start_date}
+                                        onChange={(event) =>
+                                            field(
+                                                'start_date',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError message={errors.start_date} />
+                                </div>
+
+                                <div className="grid gap-2">
                                     <Label htmlFor="settlement_date">
                                         Fecha de liquidación
                                     </Label>
@@ -310,6 +345,38 @@ export default function LiquidationCreate({
                                     </p>
                                 </div>
                             </div>
+
+                            {datesDiffer ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Se está liquidando {day(data.start_date)} →{' '}
+                                    {day(data.settlement_date)}, un período
+                                    distinto del que tiene registrado el
+                                    contrato (
+                                    {contract.dates.end
+                                        ? `${day(contract.dates.start)} → ${day(contract.dates.end)}`
+                                        : `${day(contract.dates.start)} → sin fecha de fin`}
+                                    ). La calculadora usa el período digitado y
+                                    queda guardado en la hoja de vida de la
+                                    liquidación; las fechas del contrato no se
+                                    tocan.{' '}
+                                    <button
+                                        type="button"
+                                        className="underline"
+                                        onClick={() =>
+                                            setData((current) => ({
+                                                ...current,
+                                                start_date:
+                                                    contract.dates.start,
+                                                settlement_date:
+                                                    contract.dates.end ??
+                                                    contract.dates.start,
+                                            }))
+                                        }
+                                    >
+                                        Restaurar las fechas del contrato
+                                    </button>
+                                </p>
+                            ) : null}
 
                             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                                 <DayField

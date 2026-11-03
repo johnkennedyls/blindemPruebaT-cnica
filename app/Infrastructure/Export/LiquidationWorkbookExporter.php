@@ -83,7 +83,7 @@ class LiquidationWorkbookExporter
 
         $row = $this->heading($sheet, $withIndemnization);
         $row = $this->section($sheet, $row, '1. DATOS DEL TRABAJADOR Y DEL CONTRATO');
-        $row = $this->pair($sheet, $row, 'Nombre del Empleado:', $worker->fullName(), 'Fecha de Ingreso:', $contract->start_date->format('d/m/Y'));
+        $row = $this->pair($sheet, $row, 'Nombre del Empleado:', $worker->fullName(), 'Fecha de Ingreso:', ($liquidation->period_from ?? $contract->start_date)->format('d/m/Y'));
         $row = $this->pair($sheet, $row, 'Documento de Identidad:', $worker->document_number, 'Fecha de Retiro:', $liquidation->settlement_date->format('d/m/Y'));
         $row = $this->pair($sheet, $row, 'Cargo:', $contract->position->name, 'Tipo de Contrato:', $contract->contractType->name);
         $row = $this->pair($sheet, $row, 'Motivo de Retiro:', $this->text($contract->terminationReason?->description), 'Días Totales Laborados:', $liquidation->total_days_worked);

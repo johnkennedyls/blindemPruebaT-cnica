@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Pager } from '@/components/pager';
@@ -21,6 +21,7 @@ type Props = {
 };
 
 export default function ParametricsIndex({ definition, rows, filters }: Props) {
+    const { parametrics } = usePage().props;
     const [term, setTerm] = useState(filters.q ?? '');
     const baseUrl = index({ resource: definition.slug }).url;
 
@@ -40,6 +41,25 @@ export default function ParametricsIndex({ definition, rows, filters }: Props) {
                         </Link>
                     </Button>
                 </div>
+
+                <nav
+                    aria-label="Catálogos paramétricos"
+                    className="flex flex-wrap gap-2"
+                >
+                    {parametrics.map((catalog) => (
+                        <Link
+                            key={catalog.slug}
+                            href={index({ resource: catalog.slug }).url}
+                            className={
+                                catalog.slug === definition.slug
+                                    ? 'btn-taxi rounded-full px-3.5 py-1.5 text-sm'
+                                    : 'neu-sunken rounded-full px-3.5 py-1.5 text-sm text-muted-foreground'
+                            }
+                        >
+                            {catalog.title}
+                        </Link>
+                    ))}
+                </nav>
 
                 <form
                     className="neu-card flex flex-wrap items-end gap-3 p-4"

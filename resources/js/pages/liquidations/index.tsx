@@ -269,8 +269,20 @@ export default function LiquidationIndex({
                                                         </Link>
                                                     </Button>
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        No liquidable
+                                                    <span
+                                                        className="text-xs text-muted-foreground"
+                                                        title={
+                                                            contract.status
+                                                                .value ===
+                                                            'activo'
+                                                                ? 'El contrato sigue vigente: cambielo a terminado o en liquidación para poder cerrar la nómina'
+                                                                : 'Ya existe una liquidación firmada sobre este contrato'
+                                                        }
+                                                    >
+                                                        {contract.status
+                                                            .value === 'activo'
+                                                            ? 'Vigente'
+                                                            : 'No liquidable'}
                                                     </span>
                                                 )}
                                             </td>
@@ -334,6 +346,11 @@ function ContractSummary({ contract }: { contract: ContractCard }) {
                         Liquidar este contrato
                     </Link>
                 </Button>
+            ) : contract.status.value === 'activo' ? (
+                <p className="mt-4 text-xs text-muted-foreground">
+                    Contrato vigente: cambielo a terminado o en liquidación para
+                    poder cerrarlo.
+                </p>
             ) : null}
 
             {contract.liquidations.length > 0 ? (

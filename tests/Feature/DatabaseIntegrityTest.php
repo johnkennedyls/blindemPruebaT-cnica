@@ -35,18 +35,21 @@ class DatabaseIntegrityTest extends TestCase
         $this->assertSame('2150000.50', $contract->fresh()->base_salary_monthly);
     }
 
-    public function test_rechaza_dos_contratos_activos_solapados_del_mismo_trabajador(): void
+    public function test_autoriza_dos_contratos_vigentes_del_mismo_trabajador_en_el_mismo_rango(): void
     {
         $contract = Contract::factory()->create();
 
-        $this->assertRejected(fn () => Contract::factory()->create([
+        $segundo = Contract::factory()->create([
             'worker_id' => $contract->worker_id,
             'company_id' => $contract->company_id,
             'start_date' => '2026-06-01',
-        ]), 'ex_contract_no_overlap');
+        ]);
+
+        $this->assertNotNull($segundo->id);
+        $this->assertSame(2, Contract::query()->where('worker_id', $contract->worker_id)->count());
     }
 
-    public function test_autoriza_otro_contrato_cuando_el_solapado_queda_borrado_logicamente(): void
+    public function test_el_contrato_borrado_logicamente_queda_fuera_de_las_consultas(): void
     {
         $contract = Contract::factory()->create();
 
@@ -60,6 +63,7 @@ class DatabaseIntegrityTest extends TestCase
 
         $this->assertNotNull($nuevo->id);
         $this->assertSame(1, Contract::query()->count());
+        $this->assertSame(2, Contract::withTrashed()->count());
     }
 
     public function test_rechaza_un_salario_base_en_cero(): void

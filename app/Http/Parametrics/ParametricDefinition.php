@@ -5,12 +5,6 @@ namespace App\Http\Parametrics;
 use App\Models\ParametricCatalog;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * The editable shape of one parametric catalog (tipos de documento,
- * cargos, tipos de contrato, motivos de retiro, salarios mínimos).
- * The registry drives the whole admin CRUD, so adding a catalog is
- * a matter of declaring one more definition.
- */
 final class ParametricDefinition
 {
     /**

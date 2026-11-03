@@ -36,10 +36,7 @@ class WorkerController extends Controller
         $workers = Worker::query()
             ->with(['documentType'])
             ->withCount('contracts')
-            ->when(! $user->isAdmin(), fn (Builder $query) => $query->whereHas(
-                'contracts',
-                fn (Builder $contracts) => $contracts->whereIn('company_id', $user->companies()->select('companies.id')),
-            ))
+            ->visibleTo($user)
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $inner) use ($term): void {
                     $inner->named($term)->orWhere('document_number', 'ILIKE', '%'.$term.'%');

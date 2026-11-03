@@ -9,7 +9,7 @@ class LiquidationPolicy
 {
     public function view(User $user, Liquidation $liquidation): bool
     {
-        return $user->role->isAdmin()
+        return $user->isAdmin()
             || $liquidation->created_by === $user->id
             || $user->can('view', $liquidation->contract);
     }

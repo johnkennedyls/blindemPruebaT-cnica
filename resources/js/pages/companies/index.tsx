@@ -33,7 +33,13 @@ export default function CompaniesIndex({ companies, filters }: Props) {
                         <Button asChild size="sm" className="btn-taxi border-0">
                             <Link href={create()}>Registrar empresa</Link>
                         </Button>
-                    ) : null}
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            Solo lectura: quien registra empresas es el
+                            administrador. Usted aparece en este listado porque
+                            colabora en ellas.
+                        </p>
+                    )}
                 </div>
 
                 <form

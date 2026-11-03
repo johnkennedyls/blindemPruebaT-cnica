@@ -9,11 +9,6 @@ use App\Http\Parametrics\ParametricRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * One form request for every parametric catalog: the list of fields,
- * unique attribute and derived columns come from the definition that
- * the controller resolved out of the {resource} URL segment.
- */
 class ParametricRequest extends FormRequest
 {
     private ?ParametricDefinition $definition = null;

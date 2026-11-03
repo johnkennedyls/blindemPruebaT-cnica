@@ -35,6 +35,11 @@ export function NavUser() {
                             data-test="sidebar-menu-button"
                         >
                             <UserInfo user={auth.user} />
+                            {auth.role_label ? (
+                                <span className="rounded-full border border-border px-2 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase group-data-[collapsible=icon]:hidden">
+                                    {auth.role_label}
+                                </span>
+                            ) : null}
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>

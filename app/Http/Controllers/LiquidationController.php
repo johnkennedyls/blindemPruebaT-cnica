@@ -126,6 +126,7 @@ class LiquidationController extends Controller
             manualValues: $request->manualValues(),
             cesantiasDays: $request->cesantiasDays(),
             primaDays: $request->primaDays(),
+            startDate: $request->startDate(),
         ));
 
         return response()->json([
@@ -163,6 +164,7 @@ class LiquidationController extends Controller
             manualValues: $request->manualValues(),
             cesantiasDays: $request->cesantiasDays(),
             primaDays: $request->primaDays(),
+            startDate: $request->startDate(),
         );
 
         $receipt = $this->repository->save(

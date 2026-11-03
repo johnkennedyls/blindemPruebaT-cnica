@@ -77,6 +77,22 @@ class Company extends Model
     }
 
     /**
+     * @param  Builder<Company>  $query
+     * @return Builder<Company>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'users',
+            fn (Builder $inner): Builder => $inner->whereKey($user->id),
+        );
+    }
+
+    /**
      * @return HasMany<Contract, $this>
      */
     public function contracts(): HasMany

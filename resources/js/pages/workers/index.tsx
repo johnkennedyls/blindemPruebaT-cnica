@@ -33,7 +33,12 @@ export default function WorkersIndex({ workers, filters }: Props) {
                         <Button asChild size="sm" className="btn-taxi border-0">
                             <Link href={create()}>Registrar trabajador</Link>
                         </Button>
-                    ) : null}
+                    ) : (
+                        <p className="text-xs text-muted-foreground">
+                            Solo lectura: quien registra trabajadores es el
+                            administrador.
+                        </p>
+                    )}
                 </div>
 
                 <form

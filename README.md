@@ -321,3 +321,6 @@ La carpeta `docs/` amplía lo que este README resume:
   explicación de cada clase del dominio y de la infraestructura.
 - [docs/03-diseno.md](docs/03-diseno.md) — decisiones de arquitectura, flujo de una liquidación de
   extremo a extremo, modelo de datos, seguridad, exportación, pruebas, rendimiento y despliegue.
+- [docs/04-prueba-de-endpoints.md](docs/04-prueba-de-endpoints.md) — mapa de las 33 rutas de dominio, ficha
+  de cada endpoint con su caso feliz, su caso de permiso y su caso de validación, dos recorridos guiados
+  (uno por perfil) y la hoja de verificación para la sustentación.

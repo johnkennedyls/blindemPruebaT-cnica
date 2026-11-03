@@ -16,7 +16,7 @@
 | Frontend        | **React 19 con TypeScript**, montado sobre **Inertia 3**                     | Es el entorno que se domina, y con Inertia no hace falta escribir una API: el controlador Laravel sigue existiendo, solo que en vez de devolver una vista devuelve datos y la página React los pinta.                                                      |
 | CSS             | **Tailwind CSS 4.1** + una capa propia en `resources/css/app.css`            | El kit ya trae Tailwind. Los tokens de color y las sombras neomorfas viven en un solo archivo, y los ~40 componentes del kit los heredan sin tocarlos.                                                                                                     |
 | Componentes     | **shadcn/ui** (Radix + `lucide-react`), los que trae el kit                  | Radix ya implementa ARIA, navegación por teclado y gestión de foco. Eso es accesibilidad real, no la que se escribe a mano y se olvida.                                                                                                                    |
-| Base de datos   | **PostgreSQL 18.6** (servicio local) · **pgAdmin** para revisarla            | Motor relacional completo y único para desarrollo y pruebas: claves foráneas reales, `CHECK`, `EXCLUDE` con GiST, `jsonb` e índices parciales. El enunciado lo permite explícitamente y evita el "depende del motor".                                      |
+| Base de datos   | **PostgreSQL 18.6** (servicio local) · **pgAdmin** para revisarla            | Motor relacional completo y único para desarrollo y pruebas: claves foráneas reales, `CHECK`, `jsonb`, un índice GIN con `pg_trgm` y un índice único sobre una expresión. El enunciado lo permite explícitamente y evita el "depende del motor".           |
 | Autenticación   | La del starter kit (React) + passkeys                                        | Login, registro, verificación, 2FA y perfil ya hechos y probados. Reescribirlos a mano no aporta nada a esta prueba.                                                                                                                                       |
 | Autorización    | Campo `role` + **Policies** + middleware                                     | Dos roles no justifican un paquete de permisos.                                                                                                                                                                                                            |
 | Excel           | **`phpoffice/phpspreadsheet`** usado en directo                              | El formato del cliente es una hoja fija de cinco columnas: un envoltorio tipo `maatwebsite/excel` añade una capa de abstracción que no ahorra nada, y las pruebas necesitan abrir el archivo que sale para comparar celda por celda (§9).                  |
@@ -129,8 +129,8 @@ reconstruye `blindem_test` en cada corrida; si apuntara a `blindem`, cada `php a
 destruiría los contratos de demostración que se usan para grabar el video.
 
 **Rol dedicado, no `postgres`.** El usuario de la aplicación es dueño de sus dos bases, por lo que puede
-instalar las extensiones que necesitan las migraciones (`btree_gist`, `pg_trgm`: ambas están marcadas
-`trusted` en su `.control`, así que no se necesita superusuario) y no tiene permisos de superusuario si
+instalar la extensión que necesita la migración de trabajadores (`pg_trgm`, marcada `trusted` en su
+`.control`, así que no se necesita superusuario) y no tiene permisos de superusuario si
 algún día se filtra la contraseña del `.env`.
 
 ### 2.4 Reglas al escribir migraciones sobre Postgres
@@ -145,12 +145,14 @@ Postgres se comporta distinto de lo que la documentación de Laravel asume por d
 | Los `CHECK` se agregan con `DB::statement("ALTER TABLE ... ADD CONSTRAINT ck_... CHECK (...)")` en un `foreach` justo después del `Schema::create` | El constructor de esquemas de Laravel 13.39 **no tiene verbo `check()`**: llamar `$table->check(...)` lanza `Error: Call to undefined method Blueprint::check()` al correr `php artisan migrate`, no al escribir el archivo. La restricción igual vive en la migración, con nombre propio (`ck_c_status`), para que el error de Postgres diga cuál se violó. `pg_dump` las imprime dentro del `CREATE TABLE`, así que en el apéndice §5.4 se ven inline aunque la migración las agregue por separado. |
 | `$table->unique([...], 'nombre')` e `$table->index([...], 'nombre')` con nombre explícito                                                          | En Postgres se cumplen de verdad y el esquema depende de ellos, no de una validación de formulario que se puede saltar por otra ruta. Nombrarlos es lo que permite que el error devuelva `uq_worker_doc` en vez de un `contracts_worker_id_fkey` generado a mano por la base.                                                                                                                                                                                                                         |
 | `->decimal(14, 2)` y nada de `float`                                                                                                               | Postgres guarda `NUMERIC` exacto. Un `double precision` redondea el dinero en binario y es exactamente el error que las pruebas del Excel buscan.                                                                                                                                                                                                                                                                                                                                                     |
-| `DB::statement()` para `EXCLUDE`, GIN y índices sobre expresiones                                                                                  | El constructor de esquemas no tiene verbos para ellas.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `DB::statement()` para el GIN, el índice sobre `lower(email)` y el `DROP CONSTRAINT`                                                               | El constructor de esquemas no tiene verbos para ellas.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `whereDate()` en los rangos de vigencia                                                                                                            | Eloquent guarda la fecha como `'2021-01-01 00:00:00'`; comparar con `where()` deja fuera el primer día de vigencia, que es el día en que el SMLMV ya cambió.                                                                                                                                                                                                                                                                                                                                          |
 
 Cada migración con SQL crudo arranca con `if (DB::connection()->getDriverName() !== 'pgsql') return;`. No es
 para soportar otro motor: es para que `php artisan migrate` en una máquina con otra base no reviente a la
-mitad del esquema, dejando tablas creadas y la constraint `EXCLUDE` sin aplicar.
+mitad del esquema, dejando tablas creadas y datos a medias. La migración que quita la restricción de
+solapamiento es un ejemplo: sin la guarda, ese `ALTER TABLE ... DROP CONSTRAINT` sería un error en un motor
+que nunca tuvo la constraint.
 
 ---
 
@@ -858,9 +860,8 @@ migraciones). El `ENUM` de MySQL tampoco: son `VARCHAR` + `CHECK`, y el tipo lo 
 
 ```sql
 -- ============ 0. EXTENSIONES ============
--- btree_gist permite mezclar = y && en el mismo EXCLUDE; pg_trgm da el índice de texto parcial.
--- Ambas son "trusted": el dueño de la base las instala sin ser superusuario.
-CREATE EXTENSION IF NOT EXISTS btree_gist;
+-- pg_trgm da el índice de texto parcial con que se busca un trabajador por fragmento de nombre.
+-- Es "trusted": el dueño de la base la instala sin ser superusuario.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ============ 1. CATÁLOGOS ============
@@ -1065,17 +1066,9 @@ CREATE INDEX ix_contract_company_status ON contracts (company_id, status);
 CREATE INDEX ix_contract_end ON contracts (end_date);
 CREATE INDEX ix_contract_creator ON contracts (created_by);
 
--- La restricción que MySQL y SQLite no permiten: un trabajador no puede tener dos
--- contratos activos que se toquen en el tiempo. Es un índice de exclusión con GiST,
--- WHERE (deleted_at IS NULL) para que un contrato borrado lógicamente no estorbe.
--- 'infinity'::date cierra el rango de los contratos que siguen vigentes.
-ALTER TABLE contracts
-  ADD CONSTRAINT ex_contract_no_overlap
-  EXCLUDE USING gist (
-    worker_id WITH =,
-    daterange(start_date, COALESCE(end_date, 'infinity'::date), '[]') WITH &&
-  )
-  WHERE (deleted_at IS NULL);
+-- Un trabajador sí puede tener dos contratos vigentes en el mismo rango de fechas (doble
+-- afiliación real), así que aquí no hay restricción de solapamiento: las fechas de un
+-- contrato no limitan las de otro y la convivencia la decide el usuario al registrarla.
 
 -- ============ 3. RESULTADO ============
 CREATE TABLE liquidations (
@@ -1768,17 +1761,16 @@ public function after(): array
 {
     return [
         function (Validator $validator): void {
-            if ($validator->errors()->hasAny(['worker_id', 'start_date', 'end_date'])) {
+            if ($validator->errors()->hasAny(['contract_type_id', 'start_date', 'scheduled_end_date'])) {
                 return;
             }
 
-            if ($this->overlapsAnotherContract()) {
-                $validator->errors()->add('start_date',
-                    'El trabajador ya tiene un contrato que cubre ese periodo. '
-                    . 'Un trabajador no puede tener dos contratos solapados.');
+            $message = $this->statutoryTermMessage();
+
+            if ($message !== null) {
+                $validator->errors()->add('scheduled_end_date', $message);
             }
         },
-        // el segundo cierre valida el plazo máximo legal del tipo de contrato
     ];
 }
 ```
@@ -1789,11 +1781,13 @@ Cuatro cosas de este archivo que valen la pena mirar de cerca:
   `contract_types.requires_scheduled_end`; si mañana se registra un tipo nuevo con esa bandera, el formulario
   lo exige sin tocar una línea. Lo mismo con `isClosed()`, que deriva de `ContractStatus` y hace que
   `end_date` y `termination_reason_id` se pidan juntos.
-- **`after()` es para las reglas que necesitan consultar.** `overlapsAnotherContract()` busca otros contratos del
-  mismo trabajador cuyas fechas se crucen con el periodo que se está guardando; es un `where` sobre dos columnas, no
-  algo que quepa en una cadena de reglas. La base refuerza lo mismo con el `EXCLUDE USING gist` de
-  `ck_contract_no_overlap`, así que la validación de Laravel es la barrera amable y el índice la que no se salta ni
-  por `php artisan tinker`.
+- **`after()` es para las reglas que necesitan consultar.** `statutoryTermMessage()` toma el tipo de contrato
+  elegido, lee su `statutory_max_months` y mide si la fecha de terminación prevista se pasa de ese plazo contado
+  desde la fecha de ingreso; es una comparación entre dos campos del propio envío, no algo que quepa en una cadena
+  de reglas. Antes había un segundo cierre que rechazaba que un trabajador tuviera dos contratos con fechas
+  cruzadas: se quitó, porque en la vida real un mismo trabajador sí puede estar afiliado a dos empresas al mismo
+  tiempo, y la base tampoco lo impide desde que se eliminó el `EXCLUDE USING gist` (ver la migración
+  `2026_11_02_090000_drop_contract_overlap_restriction.php`).
 - **Hay reglas que son closures con negocio adentro.** `companyRule()` limita al perfil Colaborador a las empresas
   de su tabla `user_company`, y `statusRule()` bloquea dos cosas que suenan inofensivas: poner un contrato en
   estado `Liquidado` a mano (eso lo fija el sistema al guardar la liquidación) y devolver a `Activo` un contrato
@@ -1838,10 +1832,18 @@ del mínimo de su época se liquida igual, porque la aritmética no debe corregi
 | `end_date >= start_date`                                                             | Imposible físicamente.                                                                                                              |
 | `scheduled_end_date` obligatorio si el catálogo lo exige                             | Sin ese dato no se calcula el término fijo (error #6 del Excel).                                                                    |
 | `(tipo + número de documento)` único en `workers`                                    | Sería dos personas distintas con el mismo documento.                                                                                |
-| Fechas de contrato no solapadas para un mismo trabajador                             | Duplicidad real de relación laboral; lo frena `after()` y también el `EXCLUDE` de la base.                                          |
 | `scheduled_end_date` dentro del plazo máximo legal del tipo (`statutory_max_months`) | Un término fijo que pasa del límite legal no es término fijo: se convierte en indefinido y la liquidación que sale de ahí está mal. |
 | El estado `Liquidado` no se asigna a mano                                            | Lo fija `EloquentLiquidationRepository` al guardar; si alguien lo escribe antes, el contrato desaparece de la cola de liquidación.  |
 | El Colaborador solo registra contratos de las empresas de `user_company`             | autorización, no formato: un id de empresa ajena es un dato válido que no le pertenece.                                             |
+
+Lo que deliberadamente **no** está en esta lista: dos contratos del mismo trabajador que se solapen en el tiempo.
+Un trabajador puede estar contratado por dos empresas a la vez, y en Colombia ocurre (medio tiempo en dos
+jornadas, un contrato terminable y otro indefinido coexistiendo). Cada contrato se liquida por separado, con su
+propia fecha de ingreso, su propio salario y su propio SMLMV, así que permitir el solapamiento no rompe ninguna
+cuenta; lo que rompería las cuentas sería promedizar los dos contratos como si fueran uno solo, y el motor nunca
+lo hace. En la pantalla queda a la vista: el listado de trabajadores muestra cuántos contratos tiene cada persona
+(`contracts_count`) y el buscador del listado de contratos también encuentra por el nombre del trabajador, así que
+se puede ver los dos registros conviviendo sin que nadie los prohiba.
 
 ---
 
@@ -1908,7 +1910,8 @@ Lo que cubren las demás:
 - `tests/Feature/ContractRegistryTest.php`, `WorkerRegistryTest.php`, `CompanyRegistryTest.php`,
   `ParametricRegistryTest.php`, `DashboardTest.php`, `RootRouteTest.php` y `ApiDocsTest.php`.
 - `tests/Feature/Auth/*` y `tests/Feature/Settings/*`: lo que trae el kit, que también se rompe si se toca mal.
-- `tests/Feature/DatabaseIntegrityTest.php`: dos contratos solapados del mismo trabajador, un salario en cero,
+- `tests/Feature/DatabaseIntegrityTest.php`: dos contratos vigentes del mismo trabajador en el mismo rango
+  (que ahora sí se aceptan), un salario en cero,
   un rango de fechas invertido, un `nit` vacío, un documento duplicado, una llave foránea inexistente y dos
   correos que solo difieren en mayúsculas. Ninguna pasa.
 
@@ -2020,15 +2023,15 @@ verifica las dos cosas: el `7614926` en el JSON y `Liquidation::count() === 0`.
 > **Calendario verificado:** 4 de noviembre de 2026 es **miércoles** (entrega, 10:00 a.m.) y la
 > **sustentación es el jueves 5/11 desde las 8:00 a.m.** Quedan sábado, domingo, lunes y martes.
 
-| Día                   | Estado              | Bloque                                                                                                                                                                                                                                 | Resultado verificable                                                                                                                                            |
-| --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **sáb 31/10**         | ✔ hecho             | Análisis del Excel · entorno: un solo PHP (8.5 de Herd), Composer de Herd, Node 24 · proyecto con starter kit React · tokens y neumorfismo                                                                                             | `php artisan --version` responde; `npm run build` compila sin errores; el login del kit sale con el tema aplicado                                                |
-| **sáb 31/10 (resto)** | ✔ hecho             | capas `Domain`/`Infrastructure` con sus puertos y adaptadores · los 17 modelos con sus 16 enums · las 18 migraciones propias (23 con las del kit) aplicadas sobre **PostgreSQL 18.6**: rol `blindem`, bases `blindem` y `blindem_test` | `db:show` dice `blindem / PostgreSQL 18.6 / 26 tablas`; el catálogo confirma **46 `CHECK`**, `ex_contract_no_overlap`, `ix_worker_name_trgm` y las 2 extensiones |
-| **dom 01/11**         | ✔ hecho             | `app/Domain/Calculation` completo: `WorkedDaysCalculator`, `SalaryBaseBuilder`, `Parameters`, las 9 calculadoras, las 5 clases de indemnización y `LiquidationEngine`                                                                  | Los dos golden tests del Excel en verde: `3.180.899` y `7.614.926` al peso                                                                                       |
-| **lun 02/11**         | ✔ hecho             | CRUD de `workers`, `companies`, `contracts` con filtros · pantalla de liquidación · guardar con folio · políticas y middleware de rol                                                                                                  | Se liquidan los 2 casos del Excel desde el navegador; el colaborador recibe 403 en paramétricas y al crear empresas o trabajadores                               |
-| **mar 03/11**         | ✔ hecho             | **Exportar Excel** de dos hojas · vista de impresión con firmas · panel con agregados reales · raíz que redirige · auditoría · README y los tres documentos de `docs/` · Swagger                                                       | Alcance mínimo completo de punta a punta; **255 pruebas, 1153 aserciones**, PHPStan nivel 7 en cero                                                              |
-| **mié 04/11**         | pendiente de grabar | 07:00 prueba final con los datos del cliente · 08:30 grabar el video (5-8 min) · 09:15 verificar el repositorio público y la etiqueta · **10:00 enviar el correo**                                                                     | ENTREGADO                                                                                                                                                        |
-| **jue 05/11 08:00**   | —                   | Sustentación: mapa del dominio, los 12 números verificados, las desviaciones del Excel y las cinco estrategias                                                                                                                         | —                                                                                                                                                                |
+| Día                   | Estado              | Bloque                                                                                                                                                                                                                                 | Resultado verificable                                                                                                                              |
+| --------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **sáb 31/10**         | ✔ hecho             | Análisis del Excel · entorno: un solo PHP (8.5 de Herd), Composer de Herd, Node 24 · proyecto con starter kit React · tokens y neumorfismo                                                                                             | `php artisan --version` responde; `npm run build` compila sin errores; el login del kit sale con el tema aplicado                                  |
+| **sáb 31/10 (resto)** | ✔ hecho             | capas `Domain`/`Infrastructure` con sus puertos y adaptadores · los 17 modelos con sus 16 enums · las 18 migraciones propias (23 con las del kit) aplicadas sobre **PostgreSQL 18.6**: rol `blindem`, bases `blindem` y `blindem_test` | `db:show` dice `blindem / PostgreSQL 18.6 / 26 tablas`; el catálogo confirma **46 `CHECK`**, `ix_worker_name_trgm` y la extensión de texto parcial |
+| **dom 01/11**         | ✔ hecho             | `app/Domain/Calculation` completo: `WorkedDaysCalculator`, `SalaryBaseBuilder`, `Parameters`, las 9 calculadoras, las 5 clases de indemnización y `LiquidationEngine`                                                                  | Los dos golden tests del Excel en verde: `3.180.899` y `7.614.926` al peso                                                                         |
+| **lun 02/11**         | ✔ hecho             | CRUD de `workers`, `companies`, `contracts` con filtros · pantalla de liquidación · guardar con folio · políticas y middleware de rol                                                                                                  | Se liquidan los 2 casos del Excel desde el navegador; el colaborador recibe 403 en paramétricas y al crear empresas o trabajadores                 |
+| **mar 03/11**         | ✔ hecho             | **Exportar Excel** de dos hojas · vista de impresión con firmas · panel con agregados reales · raíz que redirige · auditoría · README y los tres documentos de `docs/` · Swagger                                                       | Alcance mínimo completo de punta a punta; **255 pruebas, 1153 aserciones**, PHPStan nivel 7 en cero                                                |
+| **mié 04/11**         | pendiente de grabar | 07:00 prueba final con los datos del cliente · 08:30 grabar el video (5-8 min) · 09:15 verificar el repositorio público y la etiqueta · **10:00 enviar el correo**                                                                     | ENTREGADO                                                                                                                                          |
+| **jue 05/11 08:00**   | —                   | Sustentación: mapa del dominio, los 12 números verificados, las desviaciones del Excel y las cinco estrategias                                                                                                                         | —                                                                                                                                                  |
 
 **Regla de supervivencia que se aplicó:** cuando quedó poco tiempo, lo que se dejó fuera fue el PDF descargable y la
 pantalla de bitácora, no la aritmética. El evaluador perdona que falte un botón; no perdona que la

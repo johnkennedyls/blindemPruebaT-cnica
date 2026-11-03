@@ -81,10 +81,10 @@ La base `blindem_test` es la que usan las pruebas (`phpunit.xml` apunta a ella).
 nombre o otro usuario, se ajustan `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD` en `.env` y
 `DB_DATABASE` en `phpunit.xml`.
 
-El rol `blindem` es dueño de sus bases, y eso alcanza: las dos extensiones que necesita el esquema
-(`btree_gist` para la restricción de contratos solapados y `pg_trgm` para la búsqueda por nombre)
-están marcadas como `trusted` en PostgreSQL, o sea que el dueño de la base puede instalarlas sin ser
-superusuario. Las instala la migración `2026_10_31_190008_create_postgres_extensions`.
+El rol `blindem` es dueño de sus bases, y eso alcanza: la extensión que necesita el esquema
+(`pg_trgm`, para la búsqueda por nombre) está marcada como `trusted` en PostgreSQL, o sea que el dueño de
+la base puede instalarla sin ser superusuario. La instala la migración
+`2026_10_31_190008_create_postgres_extensions`.
 
 ### 4. Esquema y datos
 
@@ -139,9 +139,9 @@ un campo más del request.
 
 1. **Contratos** (`Contratos` en el menú): listado con búsqueda por código, trabajador o documento y
    filtro por estado y empresa. Ambos perfiles crean, editan y eliminan contratos; el colaborador
-   solo para las empresas que se le asignaron. Un contrato cerrado exige fecha de retiro y causal;
-   dos contratos solapados del mismo trabajador se rechazan a nivel de validación y de base (CHECK
-   de exclusión PostgreSQL).
+   solo para las empresas que se le asignaron. Un contrato cerrado exige fecha de retiro y causal. Un mismo
+   trabajador sí puede tener dos contratos vigentes en el mismo rango de fechas: no hay restricción de
+   solapamiento ni en la validación ni en la base.
 2. **Liquidación** (`Liquidaciones`): cada contrato liquidable muestra el botón _Liquidar_. La pantalla
    lista los contratos con tres filtros: estado, tipo de documento (el parámetro de URL es
    `document_type_id`, un id numérico) y número de documento (coincidencia exacta, no parcial). El
@@ -216,10 +216,10 @@ El suite usa la base `blindem_test` y construye su propio esquema: si la base es
 prueba corre las migraciones solas. `tests/Unit` no abre conexión; `tests/Feature` sí, porque buena
 parte de lo que se quiere comprobar son reglas que impone el motor de la base y no PHP.
 
-Entre esas reglas están las que revisa `tests/Feature/DatabaseIntegrityTest.php`: dos contratos
-solapados del mismo trabajador, un salario en cero, un rango de fechas invertido, un `nit` vacío, un
-documento duplicado, una llave foránea inexistente y dos correos que solo difieren en mayúsculas.
-Ninguna pasa.
+Entre esas reglas están las que revisa `tests/Feature/DatabaseIntegrityTest.php`: un salario en cero, un
+rango de fechas invertido, un `nit` vacío, un documento duplicado, una llave foránea inexistente y dos
+correos que solo difieren en mayúsculas. Ninguna pasa. La misma prueba comprueba lo contrario donde la
+base ya no dice nada: dos contratos vigentes del mismo trabajador en el mismo rango se aceptan sin error.
 
 ## Documentación de API (Swagger/OpenAPI)
 
@@ -279,9 +279,6 @@ Es relacional y las reglas viven en la base, no solo en el formulario:
 - 26 tablas con llaves foráneas y borrado lógico donde se necesita historial.
 - 46 restricciones `CHECK` con nombre (`ck_c_salary`, `ck_liq_math`, `ck_worker_gender`), así el
   error dice qué regla se rompió en lugar de un número anónimo.
-- `EXCLUDE USING gist` en `contracts`: un trabajador no puede tener dos contratos vigentes en el
-  mismo rango de fechas. El predicado `WHERE (deleted_at IS NULL)` deja registrar el historial de un
-  contrato cerrado.
 - Índice único funcional sobre `lower(email)` en `users`.
 - Índice GIN con `gin_trgm_ops` para buscar trabajadores por un fragmento del nombre.
 - `NUMERIC(14,2)` en los montos; PHP los lee como cadena y nunca como flotante.

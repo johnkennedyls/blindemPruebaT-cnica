@@ -116,7 +116,7 @@ npm run build
 php artisan serve
 ```
 
-La ruta `/` ya no muestra la portada de Laravel: redirige al panel (`/dashboard`) cuando hay sesión
+La ruta `/`  redirige al panel (`/dashboard`) cuando hay sesión
 abierta y al login cuando no la hay. El panel, atendido por `DashboardController@index`, muestra
 agregados reales de la base de datos: contratos activos, liquidables y liquidados, número de
 liquidaciones y los cinco contratos pendientes más antiguos.

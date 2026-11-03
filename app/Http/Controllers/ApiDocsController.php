@@ -7,15 +7,8 @@ use Illuminate\Http\Response;
 use OpenApi\Builder;
 use OpenApi\Builder\Result;
 
-/**
- * Serves the OpenAPI specification generated from the attributes in
- * app/OpenApi/ and the Swagger UI page that consumes it.
- */
 final class ApiDocsController extends Controller
 {
-    /**
-     * Builds the OpenAPI document (v3.1) scanning app/OpenApi/.
-     */
     public function build(): Result
     {
         $result = (new Builder)
@@ -28,9 +21,6 @@ final class ApiDocsController extends Controller
         return $result;
     }
 
-    /**
-     * JSON document consumed by Swagger UI.
-     */
     public function spec(): Response
     {
         return response(
@@ -40,9 +30,6 @@ final class ApiDocsController extends Controller
         );
     }
 
-    /**
-     * Swagger UI page.
-     */
     public function ui(): View
     {
         return view('api-docs.ui');

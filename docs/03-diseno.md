@@ -1685,6 +1685,50 @@ da otro número, y la diferencia no es de centavos.
 > **Test discriminador** (ponlo en la suite, es el que detecta el error):
 > `assertSame(124548, $aux->compute($ctx)->amount->centavos / 100)`. Si alguien mueve el `/30` de lugar, este test lo atrapa.
 
+### 8.4 El patrón estrategia, declarado y buscado en el repo
+
+El patrón estrategia es, en una línea: **una familia de algoritmos que son intercambiables porque prometen la
+misma firma**. Se define un contrato pequeño, cada variante se escribe en su propia clase que cumple ese
+contrato, y un único punto decide cuál usar. El que ejecuta no sabe cuántas variantes existen: llama la firma
+y ya. El nombre viene de que se puede cambiar la forma de calcular en tiempo de ejecución sin tocar a quien
+llama, igual que se cambia de estrategia a mitad del partido.
+
+En este proyecto hay tres implementaciones, y no una:
+
+| Contrato                          | Variantes                                                                                                                                  | Quién elige                            | Con qué criterio                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `ConceptCalculator`               | Nueve clases en `app/Domain/Calculation/Calculators/`, diez instancias registradas (salud y pensión comparten clase)                       | `LiquidationEngine::calculatorFor()`   | La columna `formula_key` de la fila activa de `concept_catalogs`; si no hay calculadora, el renglón se salta con un aviso |
+| `IndemnizationStrategy`           | `SinIndemnizacion`, `ProportionalByYears` (abstracta) con dos hijas, `TerminoFijoPlazoRestante`                                            | `IndemnizationStrategyFactory::make()` | Motivo de retiro primero, modalidad después, umbral de 10 SMLMV al final (§8.2)                                           |
+| `ParametricDefinition` (registro) | Cinco definiciones declaradas en `ParametricRegistry`: tipos de documento, cargos, tipos de contrato, motivos de retiro y salarios mínimos | `ParametricRegistry::resolve($slug)`   | El slug de la URL `{resource}`                                                                                            |
+
+Las dos primeras son estrategia en su forma clásica: interfaz en `app/Domain/Calculation/Contracts/`,
+implementaciones en subcarpetas, y la elección concentrada en un método. La tercera es la misma idea un piso
+más arriba, en la capa HTTP: aquí la "variante" no es una clase sino una **declaración de datos** (campos,
+reglas, columna única, relación de uso, etiqueta del borrado), y lo que se intercambia es la pantalla.
+`ParametricController` y `ParametricRequest` no conocen ninguna de las cinco tablas: preguntan al registro por
+la definición y actúan según lo que responde. Las cinco definiciones son cinco métodos privados dentro del
+mismo `ParametricRegistry`, y de ahí sale todo lo demás: el menú lateral se arma con `ParametricRegistry::all()`
+compartido por `HandleInertiaRequests`, así que agregar un catálogo nuevo es escribir una definición y listarla
+en ese arreglo —una entrada, no un controlador ni una ruta nueva—. Ese es el beneficio del patrón aplicado a
+CRUD: el código de `app/Http` se escribió una vez en lugar de cinco.
+
+Qué se gana y qué se paga, para que la respuesta no suene a folleto:
+
+- **Se gana** que un cambio legal toque un archivo. Si el literal `a` del Art. 64 pasa de 30 días a 32, cambia
+  una fila de `legal_parameters`; si se crea un motivo de retiro nuevo con sanción del 65, cambia una constante
+  del enum y una rama de la fábrica. Nadie abre `LiquidationEngine`.
+- **Se gana** que el "no hacer nada" tenga nombre: `SinIndemnizacion` es una clase, no un
+  `if ($rule === null)` suelto en el motor, así que el caso sin indemnización se prueba igual que los demás
+  (`tests/Unit/Calculation/IndemnizacionEstrategiasTest`).
+- **Se paga** en saltos. Leer el monto de la prima exige abrir el catálogo, luego el motor, luego
+  `PrimaCalculator`; son tres archivos donde antes habría habido un `switch`. Por eso este documento existe:
+  el mapa de a quién se le pregunta está acá, y la convención de nombrar la clave (`key()` en las calculadoras,
+  el `slug` en las definiciones) es lo suficientemente aburrida como para buscarse por texto.
+- **Se paga** con la tentación de abusar. No todo merece una estrategia: `Company`, `Worker` y `Contract`
+  tienen formularios y reglas propias, y están escritos como tres CRUD normales. La regla práctica que se usó
+  es que el patrón entra cuando hay **un mismo algoritmo con variantes que cambian por normativa**, y se queda
+  fuera cuando lo que cambia es la forma de la pantalla.
+
 ---
 
 ## 9. Exportar a Excel (requisito explícito del enunciado)

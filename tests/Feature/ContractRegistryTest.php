@@ -110,16 +110,19 @@ class ContractRegistryTest extends TestCase
             ]);
     }
 
-    public function test_el_contrato_solapado_se_rechaza(): void
+    public function test_un_trabajador_puede_tener_dos_contratos_vigentes_en_el_mismo_rango(): void
     {
         $existing = $this->contract();
 
         $this->actingAs($this->admin())
             ->post(route('contracts.store'), $this->payload([
                 'worker_id' => $existing->worker_id,
+                'company_id' => $existing->company_id,
                 'start_date' => '2026-03-01',
             ]))
-            ->assertSessionHasErrors(['start_date' => 'El trabajador ya tiene un contrato que cubre ese periodo. Un trabajador no puede tener dos contratos solapados.']);
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, Contract::query()->where('worker_id', $existing->worker_id)->count());
     }
 
     public function test_un_contrato_cerrado_exige_fecha_de_retiro_y_causal(): void

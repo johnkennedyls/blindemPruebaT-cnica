@@ -10,7 +10,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'ContractInput',
     title: 'Cuerpo de contrato',
-    description: 'Validación de `POST /contratos` y `PUT /contratos/{contract}`. Notas de negocio: un contrato con estado cerrado exige `end_date` y `termination_reason_id`; cada trabajador no puede tener dos contratos solapados; el estado `liquidado` lo fija el sistema y no se admite a mano; los tipos de contrato con `statutory_max_months` limitan `scheduled_end_date` a ese plazo.',
+    description: 'Validación de `POST /contratos` y `PUT /contratos/{contract}`. Notas de negocio: un contrato con estado cerrado exige `end_date` y `termination_reason_id`; un mismo trabajador puede tener dos contratos vigentes en el mismo rango de fechas, así que no se rechaza el solapamiento; el estado `liquidado` lo fija el sistema y no se admite a mano; los tipos de contrato con `statutory_max_months` limitan `scheduled_end_date` a ese plazo.',
     required: ['code', 'worker_id', 'company_id', 'contract_type_id', 'position_id', 'start_date', 'base_salary_monthly', 'transport_auxiliary_mode', 'status'],
     properties: [
         new OA\Property(property: 'code', type: 'string', minLength: 1, maxLength: 30, pattern: '^[A-Z0-9._\-]+$', example: 'CT-2024-001',

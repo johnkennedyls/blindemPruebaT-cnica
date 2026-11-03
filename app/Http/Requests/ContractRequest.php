@@ -78,18 +78,6 @@ class ContractRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if ($validator->errors()->hasAny(['worker_id', 'start_date', 'end_date'])) {
-                    return;
-                }
-
-                if ($this->overlapsAnotherContract()) {
-                    $validator->errors()->add(
-                        'start_date',
-                        'El trabajador ya tiene un contrato que cubre ese periodo. Un trabajador no puede tener dos contratos solapados.',
-                    );
-                }
-            },
-            function (Validator $validator): void {
                 if ($validator->errors()->hasAny(['contract_type_id', 'start_date', 'scheduled_end_date'])) {
                     return;
                 }
@@ -213,27 +201,6 @@ class ContractRequest extends FormRequest
             $type->name,
             $type->statutory_max_months,
         );
-    }
-
-    private function overlapsAnotherContract(): bool
-    {
-        $start = (string) $this->input('start_date');
-        $end = $this->input('end_date');
-        $end = is_string($end) && $end !== '' ? $end : '9999-12-31';
-
-        return Contract::query()
-            ->where('worker_id', (int) $this->input('worker_id'))
-            ->when(
-                $this->contract(),
-                fn (Builder $query, Contract $current): Builder => $query->whereKeyNot($current->id),
-            )
-            ->where('start_date', '<=', $end)
-            ->where(
-                fn (Builder $query): Builder => $query
-                    ->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $start),
-            )
-            ->exists();
     }
 
     private function numericOrZero(string $key): string|int

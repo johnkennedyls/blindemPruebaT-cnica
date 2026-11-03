@@ -207,6 +207,35 @@ class LiquidationFlowTest extends TestCase
         $this->assertSame(0, Liquidation::query()->count());
     }
 
+    public function test_la_fecha_de_ingreso_editable_cambia_el_periodo_sin_tocar_el_contrato(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['start_date' => '2022-03-15']))
+            ->assertSessionHasNoErrors();
+
+        $liquidation = Liquidation::query()->sole();
+
+        $this->assertSame('2022-03-15', $liquidation->period_from->toDateString());
+        $this->assertSame('2024-06-30', $liquidation->period_to->toDateString());
+        $this->assertNotSame('7614926.00', $liquidation->net_total);
+        $this->assertSame('2021-03-15', $contract->fresh()->start_date->toDateString());
+    }
+
+    public function test_omitar_la_fecha_de_ingreso_usa_la_del_contrato(): void
+    {
+        $user = $this->admin();
+        $contract = $this->excelContract($user);
+
+        $this->actingAs($user)
+            ->post(route('liquidations.store', $contract), $this->payload(['start_date' => '']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('2021-03-15', Liquidation::query()->sole()->period_from->toDateString());
+    }
+
     public function test_los_dias_de_vacaciones_son_obligatorios(): void
     {
         $user = $this->admin();

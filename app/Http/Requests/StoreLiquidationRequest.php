@@ -4,9 +4,12 @@ namespace App\Http\Requests;
 
 use App\Domain\Enum\LiquidationVariant;
 use App\Models\Contract;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Validator;
 
 class StoreLiquidationRequest extends FormRequest
 {
@@ -31,7 +34,8 @@ class StoreLiquidationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'settlement_date' => ['required', 'date', 'after_or_equal:'.$this->contract()->start_date->toDateString()],
+            'start_date' => ['nullable', 'date'],
+            'settlement_date' => ['required', 'date'],
             'variant' => ['required', 'in:'.implode(',', LiquidationVariant::values())],
             'cesantias_days' => ['nullable', 'integer', 'min:0', 'max:360'],
             'prima_days' => ['nullable', 'integer', 'min:0', 'max:180'],
@@ -44,11 +48,38 @@ class StoreLiquidationRequest extends FormRequest
     }
 
     /**
+     * @return array<int, Closure>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($validator->errors()->hasAny(['start_date', 'settlement_date'])) {
+                    return;
+                }
+
+                $start = $this->input('start_date');
+                $start = is_string($start) && trim($start) !== ''
+                    ? Carbon::parse($start)->toDateString()
+                    : $this->contract()->start_date->toDateString();
+
+                if (Carbon::parse((string) $this->input('settlement_date'))->lt(Carbon::parse($start))) {
+                    $validator->errors()->add(
+                        'settlement_date',
+                        'La fecha de liquidación no puede ser anterior a la fecha de ingreso.',
+                    );
+                }
+            },
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function attributes(): array
     {
         return [
+            'start_date' => 'la fecha de ingreso',
             'settlement_date' => 'la fecha de liquidación',
             'variant' => 'el formato de la liquidación',
             'cesantias_days' => 'los días de cesantías',
@@ -67,7 +98,8 @@ class StoreLiquidationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'settlement_date.after_or_equal' => 'La fecha de liquidación no puede ser anterior al inicio del contrato.',
+            'start_date.date' => 'La fecha de ingreso debe ser una fecha válida, por ejemplo 2023-01-15.',
+            'settlement_date.date' => 'La fecha de liquidación debe ser una fecha válida, por ejemplo 2024-06-30.',
             'variant.in' => 'El formato de la liquidación no es uno de los dos que maneja la calculadora.',
         ];
     }
@@ -77,9 +109,18 @@ class StoreLiquidationRequest extends FormRequest
         return LiquidationVariant::from($this->text('variant'));
     }
 
+    public function startDate(): string
+    {
+        $start = $this->validated('start_date');
+
+        return is_string($start) && trim($start) !== ''
+            ? Carbon::parse($start)->toDateString()
+            : $this->contract()->start_date->toDateString();
+    }
+
     public function settlementDate(): string
     {
-        return $this->text('settlement_date');
+        return Carbon::parse($this->text('settlement_date'))->toDateString();
     }
 
     /**

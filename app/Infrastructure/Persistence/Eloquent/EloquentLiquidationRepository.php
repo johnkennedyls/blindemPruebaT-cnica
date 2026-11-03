@@ -36,13 +36,13 @@ class EloquentLiquidationRepository implements LiquidationRepository
                 $liquidation->items()->create($this->item($line));
             }
 
-            $this->markContractAsLiquidating($contractId);
+            $this->markContractAsLiquidated($contractId);
 
             return new LiquidationReceipt($liquidation->id, $liquidation->folio);
         });
     }
 
-    private function markContractAsLiquidating(int $contractId): void
+    private function markContractAsLiquidated(int $contractId): void
     {
         $contract = Contract::query()->findOrFail($contractId);
 
@@ -50,7 +50,7 @@ class EloquentLiquidationRepository implements LiquidationRepository
             return;
         }
 
-        $contract->update(['status' => ContractStatus::EnLiquidacion]);
+        $contract->update(['status' => ContractStatus::Liquidado]);
     }
 
     /**

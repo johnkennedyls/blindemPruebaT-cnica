@@ -161,7 +161,11 @@ class LiquidationFlowTest extends TestCase
         $this->assertSame('7614926.00', $liquidation->net_total);
         $this->assertSame('7688130.00', $liquidation->total_earned);
         $this->assertCount(11, $liquidation->items);
-        $this->assertSame('en_liquidacion', $contract->fresh()->status->value);
+        $this->assertSame('liquidado', $contract->fresh()->status->value);
+
+        $this->actingAs($user)->get(route('contracts.edit', $contract))->assertForbidden();
+        $this->actingAs($user)->post(route('liquidations.store', $contract), $this->payload())->assertForbidden();
+        $this->assertSame(1, Liquidation::query()->count());
 
         $log = ActivityLog::query()->sole();
 

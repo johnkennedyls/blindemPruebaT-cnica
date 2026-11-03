@@ -116,10 +116,10 @@ npm run build
 php artisan serve
 ```
 
-La ruta `/` ya no muestra la portada de Laravel: redirige al panel (`/dashboard`) cuando hay sesión
-abierta y al login cuando no la hay. El panel, atendido por `DashboardController@index`, muestra
-agregados reales de la base de datos: contratos activos, liquidables y liquidados, número de
-liquidaciones y los cinco contratos pendientes más antiguos.
+La ruta `/` redirige al panel (`/dashboard`) cuando hay sesión abierta y al login cuando no la
+hay. El panel, atendido por `DashboardController@index`, muestra agregados reales de la base de
+datos: contratos activos, liquidables y liquidados, número de liquidaciones y los cinco contratos
+pendientes más antiguos.
 
 ## Cuentas de prueba
 
@@ -200,7 +200,7 @@ liquidación.
 php artisan test
 ```
 
-La suite pasa en verde: **255 pruebas con 1153 aserciones** en PHPUnit 12. Hay pruebas de dominio
+La suite pasa en verde: **265 pruebas con 1335 aserciones** en PHPUnit 12. Hay pruebas de dominio
 (`tests/Unit`, sin abrir conexión), pruebas de integración y de flujo (`tests/Feature`, contra
 `blindem_test`) y pruebas "golden" que fijan los números exactos del Excel del cliente: 7.688.130 de
 devengado con indemnización, 73.204 de deducciones y 7.614.926 de neto en el formato con

@@ -81,7 +81,7 @@ Con `php artisan serve` a secas ya basta para todas las pruebas de este document
 ### 1.3 Pruebas automáticas
 
 ```powershell
-php artisan test                                   # 262 pruebas, 1.277 aserciones
+php artisan test                                   # 265 pruebas, 1.335 aserciones
 php artisan test --filter=LiquidationFlowTest      # la calculadora de punta a punta
 php artisan test --filter=DemoSeedLiquidationTest  # liquida los 14 contratos liquidables de la semilla
 npm run check; npm run types:check                 # formato y tipos del lado React

@@ -435,7 +435,7 @@ La prueba está terminada **solo** si se cumple todo esto:
       retiro y salarios mínimos) tienen CRUD funcionando con validaciones. Conceptos y parámetros
       legales vienen sembrados y se editan por base de datos: no llevan pantalla.
 - [x] La vista de impresión muestra el texto de paz y salvo y las dos firmas.
-- [x] `php artisan test` pasa en verde, incluyendo los dos casos del Excel: 255 pruebas y 1153
+- [x] `php artisan test` pasa en verde, incluyendo los dos casos del Excel: 265 pruebas y 1335
       aserciones, más PHPStan nivel 7 sin errores.
 - [ ] README con: objetivo, instalación paso a paso, estructura, diagrama ER, reglas de negocio, tabla de desviaciones del Excel y video. _(El README está; el enlace al video se agrega al grabarlo.)_
 - [ ] Video de 5-8 minutos grabado y subido (enlace) con una liquidación real y explicación.

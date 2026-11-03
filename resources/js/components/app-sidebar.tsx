@@ -1,10 +1,15 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
+    Briefcase,
     Building2,
     Calculator,
+    Coins,
+    FileStack,
     FileText,
+    Flag,
     FolderGit2,
+    Fingerprint,
     LayoutGrid,
     SlidersHorizontal,
     Users,
@@ -25,12 +30,12 @@ import {
 import { index as companies } from '@/routes/companies';
 import { index as contracts } from '@/routes/contracts';
 import { index as liquidations } from '@/routes/liquidations';
-import * as parametrics from '@/routes/parametrics';
+import { index as parametricIndex } from '@/routes/parametrics';
 import { index as workers } from '@/routes/workers';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const baseNavItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
     {
         title: 'Panel',
         href: dashboard(),
@@ -71,23 +76,24 @@ const footerNavItems: NavItem[] = [
     },
 ];
 
-export function AppSidebar() {
-    const isAdmin = usePage().props.auth.is_admin;
+const parametricIcons: Record<string, typeof SlidersHorizontal> = {
+    'tipos-de-documento': Fingerprint,
+    cargos: Briefcase,
+    'tipos-de-contrato': FileStack,
+    'motivos-de-retiro': Flag,
+    'salarios-minimos': Coins,
+};
 
-    const mainNavItems: NavItem[] = [
-        ...baseNavItems,
-        ...(isAdmin
-            ? [
-                  {
-                      title: 'Parámetros',
-                      href: parametrics.index({
-                          resource: 'tipos-de-documento',
-                      }).url,
-                      icon: SlidersHorizontal,
-                  } satisfies NavItem,
-              ]
-            : []),
-    ];
+export function AppSidebar() {
+    const { auth, parametrics } = usePage().props;
+
+    const parametricNavItems: NavItem[] = auth.is_admin
+        ? parametrics.map((catalog) => ({
+              title: catalog.title,
+              href: parametricIndex({ resource: catalog.slug }).url,
+              icon: parametricIcons[catalog.slug] ?? SlidersHorizontal,
+          }))
+        : [];
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -104,7 +110,11 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Gestión" />
+                <NavMain
+                    items={parametricNavItems}
+                    label="Parámetros (administrador)"
+                />
             </SidebarContent>
 
             <SidebarFooter>

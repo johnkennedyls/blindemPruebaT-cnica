@@ -602,6 +602,8 @@ El corazón del proyecto. Cuatro rutas viven debajo de `/contratos/{contract}` y
 - **Permiso:** `403` sobre un contrato `activo` y `403` sobre uno `liquidado`. Verificado en vivo: la razón
   es `ContractStatus::canBeLiquidated()`, que solo admite los dos estados anteriores. Este es el detalle que
   deja fuera de la calculadora al `CTR-000004` de Jorge Enrique Roa: no es un fallo, es que está vigente.
+  En el listado de `/liquidaciones`, la columna de acción no deja el hueco en blanco: los vigentes dicen
+  «Vigente» y los cerrados «No liquidable», con el motivo en el `title` del texto.
 - **Prueba automática:** `LiquidationFlowTest::test_un_contrato_activo_no_se_liquida`.
 
 #### `POST /contratos/{contract}/liquidar/vista-previa` — calcular sin guardar

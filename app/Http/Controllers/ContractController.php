@@ -65,7 +65,7 @@ class ContractController extends Controller
                 'status' => $status?->value,
                 'company_id' => $companyId,
             ],
-            'statuses' => $this->statusOptions(),
+            'statuses' => $this->statusFilterOptions(),
             'companies' => $this->companyOptions($user),
         ]);
     }
@@ -223,12 +223,26 @@ class ContractController extends Controller
      */
     private function statusOptions(): array
     {
+        return $this->toOptions(ContractStatus::assignableCases());
+    }
+
+    /**
+     * @return array<int, array{value: string, label: string}>
+     */
+    private function statusFilterOptions(): array
+    {
+        return $this->toOptions(ContractStatus::cases());
+    }
+
+    /**
+     * @param  list<ContractStatus>  $cases
+     * @return array<int, array{value: string, label: string}>
+     */
+    private function toOptions(array $cases): array
+    {
         return array_map(
             fn (ContractStatus $case): array => ['value' => $case->value, 'label' => $case->label()],
-            array_filter(
-                ContractStatus::cases(),
-                fn (ContractStatus $case): bool => $case !== ContractStatus::Liquidado,
-            ),
+            $cases,
         );
     }
 

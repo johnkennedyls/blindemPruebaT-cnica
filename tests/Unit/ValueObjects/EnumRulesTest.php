@@ -66,6 +66,13 @@ final class EnumRulesTest extends TestCase
         $this->assertTrue(ContractStatus::Liquidado->isClosed());
     }
 
+    public function test_el_estado_liquidado_no_es_asignable_a_mano(): void
+    {
+        $this->assertCount(3, ContractStatus::assignableCases());
+        $this->assertNotContains(ContractStatus::Liquidado, ContractStatus::assignableCases());
+        $this->assertContains(ContractStatus::Liquidado, ContractStatus::cases());
+    }
+
     public function test_una_liquidacion_anulada_no_se_exporta_pero_si_se_consulta(): void
     {
         $this->assertTrue(LiquidationStatus::Calculada->isExportable());

@@ -139,7 +139,7 @@ class Contract extends Model
      */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->role->isAdmin()) {
+        if ($user->isAdmin()) {
             return $query;
         }
 

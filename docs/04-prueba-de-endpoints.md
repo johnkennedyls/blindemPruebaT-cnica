@@ -24,8 +24,9 @@ Cada ficha indica además **dónde está la prueba automática** que vigila ese 
 contrato: si alguna se mueve, la otra lo avisa.
 
 No se prueba aquí (fuera de alcance declarado en `docs/01-requerimientos.md`): autenticación por token,
-API pública multi-tenant, facturación electrónica, ni el flujo de aprobación de la liquidación.
-El auto-registro tampoco: las cuentas se crean con la semilla.
+API pública multi-tenant, facturación electrónica, ni el flujo de aprobación de la liquidación. Del
+auto-registro solo se anota el rol que reparte (§5.7); las cuentas con las que se recorre la guía salen de
+la semilla.
 
 ---
 
@@ -250,13 +251,13 @@ y con el correo verificado.
 | `GET`    | `/dashboard`                                   | `dashboard`            | Panel       | todos          |
 | `GET`    | `/documentacion/api`                           | `api-docs.ui`          | Doc. API    | público        |
 | `GET`    | `/documentacion/api/spec.json`                 | `api-docs.spec`        | Doc. API    | público        |
-| `GET`    | `/empresas`                                    | `companies.index`      | Empresas    | todos          |
+| `GET`    | `/empresas`                                    | `companies.index`      | Empresas    | todos (filtro) |
 | `GET`    | `/empresas/crear`                              | `companies.create`     | Empresas    | `admin`        |
 | `POST`   | `/empresas`                                    | `companies.store`      | Empresas    | `admin`        |
 | `GET`    | `/empresas/{company}/editar`                   | `companies.edit`       | Empresas    | `admin`        |
 | `PUT`    | `/empresas/{company}`                          | `companies.update`     | Empresas    | `admin`        |
 | `DELETE` | `/empresas/{company}`                          | `companies.destroy`    | Empresas    | `admin`        |
-| `GET`    | `/trabajadores`                                | `workers.index`        | Trabajad.   | todos          |
+| `GET`    | `/trabajadores`                                | `workers.index`        | Trabajad.   | todos (filtro) |
 | `GET`    | `/trabajadores/crear`                          | `workers.create`       | Trabajad.   | `admin`        |
 | `POST`   | `/trabajadores`                                | `workers.store`        | Trabajad.   | `admin`        |
 | `GET`    | `/trabajadores/{worker}/editar`                | `workers.edit`         | Trabajad.   | `admin`        |
@@ -281,10 +282,11 @@ y con el correo verificado.
 | `PUT`    | `/parametricas/{resource}/{parametric}`        | `parametrics.update`   | Paramétr.   | `admin`        |
 | `DELETE` | `/parametricas/{resource}/{parametric}`        | `parametrics.destroy`  | Paramétr.   | `admin`        |
 
-La columna «todos (filtro)» significa que el listado está filtrado por datos, no por rol: el colaborador ve la pantalla con 200, pero solo los
-contratos y las liquidaciones a los que su política le llega. Es la diferencia entre «no puede abrir»
-(`403`) y «abre y ve menos» (`200` con el conjunto recortado), y conviene tenerla clara antes de leer
-las fichas.
+La columna «todos (filtro)» significa que el listado está filtrado por datos, no por rol: el colaborador ve
+la pantalla con 200, pero solo las empresas donde colabora, los afiliados con contrato en alguna de esas
+empresas y los contratos y las liquidaciones a los que su política le llega. Es la diferencia entre «no
+puede abrir» (`403`) y «abre y ve menos» (`200` con el conjunto recortado), y conviene tenerla clara antes
+de leer las fichas.
 
 Las seis rutas paramétricas no se repiten cinco veces en el archivo: son seis rutas con `{resource}`
 resuelto contra el registro de `app/Http/Parametrics/ParametricRegistry.php`. Los cinco slugs válidos son
@@ -360,18 +362,22 @@ mismo pedido hecho con el otro rol; «Validación» manda un cuerpo roto y compa
 
 ### 5.2 Empresas
 
-Escritura exclusiva del administrador; lectura abierta a los dos perfiles.
+Escritura exclusiva del administrador; lectura abierta a los dos perfiles, aunque al colaborador solo le
+aparecen las empresas donde colabora.
 
 #### `GET /empresas`
 
 - **Parámetros:** `q` (nombre comercial, razón social o NIT, con `ILIKE`), `page`. Doce tarjetas por
   página, ordenadas por razón social, cada una con cuántos contratos tiene.
 - **Feliz:** `Send-Blin 'adm.txt' 'GET' '/empresas?q=Andina' $null` → `200`. Con `col.txt` también `200`.
-- **Permiso:** los dos roles entran. Lo que cambia es lo que se puede hacer después: el botón «Nueva
-  empresa» y el formulario de edición solo aparecen para el administrador.
+- **Permiso:** los dos roles entran, pero el **contenido se recorta**: quien no es administrador solo ve las
+  empresas donde colabora, es decir, las filas del usuario en `user_company`. Con `adm.txt` salen las cinco
+  de la semilla; con `col.txt` salen Andina, Neumática y Meridian. El botón «Nueva empresa» y el formulario
+  de edición, en cambio, solo aparecen para el administrador.
 - **Validación:** un `page` que no existe devuelve la paginadora vacía, no un error; es el comportamiento
-  estándar de Laravel y no hay nada que firmar aquí.
-- **Prueba automática:** `tests/Feature/CompanyRegistryTest`.
+  estándar de Laravel y es el mismo `200` que hay que esperar aquí.
+- **Prueba automática:** `CompanyRegistryTest::test_el_colaborador_ve_solo_las_empresas_donde_colabora` y
+  `CompanyRegistryTest::test_el_administrador_ve_el_listado_y_conta_los_contratos`.
 
 #### `GET /empresas/crear`
 
@@ -482,8 +488,10 @@ empresas donde consta como colaborador, y el administrador puede con todos.
 #### `GET /contratos`
 
 - **Parámetros:** `q` (código, nombre del afiliado o número de documento), `status` (`activo`,
-  `terminado`, `en_liquidacion`), `company_id`, `page`. Diez por página, ordenados por fecha de ingreso
-  descendente.
+  `terminado`, `en_liquidacion`, `liquidado`), `company_id`, `page`. Diez por página, ordenados por fecha de
+  ingreso descendente. El desplegable del **filtro** sale de los cuatro casos del enum, así que `liquidado`
+  también se puede consultar; el desplegable del **formulario** sale de `ContractStatus::assignableCases()`,
+  que son tres, porque el estado `liquidado` lo fija el sistema al guardar la liquidación.
 - **Feliz:**
 
     ```powershell
@@ -903,21 +911,21 @@ la semilla recién cargada.
 Para firmar durante el video o la sustentación. Una línea por grupo de rutas; la columna «pasa cuando» es el
 criterio, no una opinión.
 
-| Grupo               | Pasa cuando                                                                                                                                 | ☐   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --- |
-| Panel               | Sin sesión devuelve `302` a `/login`, y con sesión las cuatro tarjetas coinciden con pgAdmin.                                               | ☐   |
-| Empresas            | El colaborador obtiene `403` en las cinco rutas de escritura; el administrador crea, edita y no puede borrar una con contratos.             | ☐   |
-| Trabajadores        | Documento repetido da `422`, el mismo número en otro tipo da `302`, y el listado del colaborador está recortado a sus empresas.             | ☐   |
-| Contratos           | Alta `302`, código duplicado `422`, estado `liquidado` a mano `422`, empresa ajena `422` para el colaborador y `302` para el administrador. | ☐   |
-| Contratos (cierre)  | Un contrato `liquidado` no se edita (`403`) y borrar uno sin liquidaciones deja la fila con `deleted_at`.                                   | ☐   |
-| Calculadora         | La vista previa responde `200` con JSON y **no** crea filas; el mismo cálculo repetido da el mismo monto.                                   | ☐   |
-| Guardado            | Un guardado deja once renglones, `neto = ganado − deducido`, folio nuevo y contrato en `liquidado`.                                         | ☐   |
-| Permisos de cálculo | Contrato activo `403`, contrato liquidado `403`, liquidación de un tercero `403`.                                                           | ☐   |
-| Excel               | Descarga `200` con el tipo MIME de hoja de cálculo, nombre `{folio}.xlsx` y la hoja de normativa.                                           | ☐   |
-| Paramétricas        | Los cinco catálogos abren, el duplicado da `422`, el borrado en uso da el aviso y el libre borra.                                           | ☐   |
-| Perfiles            | El menú lateral del colaborador no tiene paramétricas, y el del administrador sí tiene las cinco.                                           | ☐   |
-| Documentación viva  | `/documentacion/api/spec.json` responde `200` sin sesión y menciona los cinco módulos.                                                      | ☐   |
-| Pruebas automáticas | `php artisan test` en verde, `vendor/bin/phpstan` y `npm run check` sin salida.                                                             | ☐   |
+| Grupo               | Pasa cuando                                                                                                                                                   | ☐   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| Panel               | Sin sesión devuelve `302` a `/login`, y con sesión las cuatro tarjetas coinciden con pgAdmin.                                                                 | ☐   |
+| Empresas            | El colaborador obtiene `403` en las cinco rutas de escritura y ve tres filas en el listado; el administrador crea, edita y no puede borrar una con contratos. | ☐   |
+| Trabajadores        | Documento repetido da `422`, el mismo número en otro tipo da `302`, y el listado del colaborador está recortado a sus empresas.                               | ☐   |
+| Contratos           | Alta `302`, código duplicado `422`, estado `liquidado` a mano `422`, empresa ajena `422` para el colaborador y `302` para el administrador.                   | ☐   |
+| Contratos (cierre)  | Un contrato `liquidado` no se edita (`403`) y borrar uno sin liquidaciones deja la fila con `deleted_at`.                                                     | ☐   |
+| Calculadora         | La vista previa responde `200` con JSON y **no** crea filas; el mismo cálculo repetido da el mismo monto.                                                     | ☐   |
+| Guardado            | Un guardado deja once renglones, `neto = ganado − deducido`, folio nuevo y contrato en `liquidado`.                                                           | ☐   |
+| Permisos de cálculo | Contrato activo `403`, contrato liquidado `403`, liquidación de un tercero `403`.                                                                             | ☐   |
+| Excel               | Descarga `200` con el tipo MIME de hoja de cálculo, nombre `{folio}.xlsx` y la hoja de normativa.                                                             | ☐   |
+| Paramétricas        | Los cinco catálogos abren, el duplicado da `422`, el borrado en uso da el aviso y el libre borra.                                                             | ☐   |
+| Perfiles            | El menú lateral del colaborador no tiene paramétricas, y el del administrador sí tiene las cinco.                                                             | ☐   |
+| Documentación viva  | `/documentacion/api/spec.json` responde `200` sin sesión y menciona los cinco módulos.                                                                        | ☐   |
+| Pruebas automáticas | `php artisan test` en verde, `vendor/bin/phpstan` y `npm run check` sin salida.                                                                               | ☐   |
 
 Las tres últimas filas son las que sostienen las doce anteriores: si un endpoint cambia y alguien no se dio
 cuenta en el navegador, la prueba automática o el spec vivo lo reclaman.

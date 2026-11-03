@@ -25,6 +25,12 @@ enum ContractStatus: string
         return array_column(self::cases(), 'value');
     }
 
+    /** @return list<self> */
+    public static function assignableCases(): array
+    {
+        return [self::Activo, self::Terminado, self::EnLiquidacion];
+    }
+
     public function isClosed(): bool
     {
         return $this !== self::Activo;

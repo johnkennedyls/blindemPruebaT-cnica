@@ -64,6 +64,30 @@ class CompanyRegistryTest extends TestCase
             );
     }
 
+    public function test_el_colaborador_ve_solo_las_empresas_donde_colabora(): void
+    {
+        $collaborator = User::factory()->create();
+        $mine = Company::factory()->create(['business_name' => 'Comercializadora Andina S.A.S.']);
+        $other = Company::factory()->create(['business_name' => 'Transportes del Savar S.A.S.']);
+
+        $collaborator->companies()->attach($mine->id);
+
+        $this->actingAs($collaborator)
+            ->get(route('companies.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('companies.total', 1)
+                ->where('companies.data.0.id', $mine->id)
+                ->where('auth.is_admin', false),
+            );
+
+        $this->actingAs($this->admin())
+            ->get(route('companies.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('companies.total', 2)
+                ->where('companies.data.0.id', $mine->id),
+            );
+    }
+
     public function test_el_listado_filtra_por_razon_social_o_nit(): void
     {
         Company::factory()->create(['business_name' => 'Comercializadora Andina S.A.S.', 'nit' => '900111222']);

@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
     ],
 )]
 #[OA\Info(
-    version: '1.0.0',
+    version: '1.1.0',
     title: 'Blindem — Liquidación de Prestaciones e Indemnización Laboral',
     description: 'Documentación operativa de **toda la aplicación web Blindem**, un sistema Laravel 13 + React 19 (Inertia) que liquida prestaciones sociales, vacaciones, indemnización por despido sin justa causa y genera el formato estándar de liquidación en Excel, coincidiendo al número cerrado con `Formato_Liquidacion_e_Indemnizacion_Prueba Blindem.xlsx`.'.
         "\n\n".

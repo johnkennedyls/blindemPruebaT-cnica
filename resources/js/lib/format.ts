@@ -21,10 +21,14 @@ export function quantity(value: string | number | null | undefined): string {
     return quantityFormat.format(Number(value));
 }
 
+function pluralize(singular: string): string {
+    return /[aeiou]$/i.test(singular) ? `${singular}s` : `${singular}es`;
+}
+
 export function count(
     value: string | number | null | undefined,
     singular: string,
-    plural: string,
+    plural = pluralize(singular),
 ): string {
     if (value === null || value === undefined || value === '') {
         return '—';

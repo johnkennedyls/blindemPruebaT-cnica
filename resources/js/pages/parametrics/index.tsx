@@ -165,7 +165,6 @@ export default function ParametricsIndex({ definition, rows, filters }: Props) {
                                                         : count(
                                                               row.usage_count,
                                                               definition.usage_label,
-                                                              `${definition.usage_label}s`,
                                                           )}
                                                 </td>
                                             ) : null}
@@ -244,11 +243,7 @@ function RowCard({
             </div>
             {row.usage_count !== null && definition.usage_label ? (
                 <p className="mt-3 text-xs text-muted-foreground">
-                    {count(
-                        row.usage_count,
-                        definition.usage_label,
-                        `${definition.usage_label}s`,
-                    )}
+                    {count(row.usage_count, definition.usage_label)}
                 </p>
             ) : null}
             <Button asChild variant="outline" size="sm" className="mt-4 w-full">

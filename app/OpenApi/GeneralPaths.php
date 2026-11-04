@@ -20,7 +20,7 @@ final class GeneralPaths
                 response: '302',
                 description: 'Redirige a `/login` si no hay sesión y a `/dashboard` si el usuario ya entró.',
                 headers: [
-                    new OA\Header(header: 'Location', schema: new OA\Schema(type: 'string'), example: 'http://127.0.0.1:8321/login'),
+                    new OA\Header(header: 'Location', schema: new OA\Schema(type: 'string'), example: 'http://127.0.0.1:8000/login'),
                 ],
             ),
         ],
